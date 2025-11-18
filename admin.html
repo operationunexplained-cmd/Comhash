@@ -4,7 +4,7 @@
   <title>Admin Panel</title>
   <style>
     body { font-family: Arial; padding: 20px; }
-    button { padding: 10px 16px; margin: 10px 0; cursor: pointer; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; }
     #output { white-space: pre; background:#eee; padding:15px; margin-top:10px; border-radius:5px; }
     #panel { display:none; }
   </style>
@@ -13,17 +13,23 @@
 
 <h2>Admin Panel</h2>
 
-<input id="adminPass" type="password" placeholder="Enter admin password" style="padding:10px;">
+<input id="adminPass" type="password" placeholder="Enter admin password">
 <button onclick="login()">Login</button>
 
 <div id="panel">
+  <h3>Load Users</h3>
+  <input id="dbPath" placeholder="Enter DB path (default: users)" value="users">
   <button onclick="loadUsers()">Load All Users</button>
+
+  <h3>Add Coins</h3>
+  <input id="uid" placeholder="Telegram ID (e.g., 5516578535)">
+  <input id="addAmount" type="number" placeholder="Amount to add">
   <button onclick="addCoins()">Add Coins</button>
 
   <div id="output">Waiting...</div>
 </div>
 
-<!-- Firebase v8 (Only version that works everywhere) -->
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -46,13 +52,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // ==============================
-// ADMIN PASSWORD
+// ADMIN LOGIN (HTML ONLY)
 // ==============================
-const ADMIN_PASSWORD = "superadmin123"; // change this
+const ADMIN_PASSWORD = "superadmin123";
 
-// ==============================
-// LOGIN
-// ==============================
 function login() {
   const pass = document.getElementById("adminPass").value;
   if (pass !== ADMIN_PASSWORD) return alert("Wrong password");
@@ -60,34 +63,32 @@ function login() {
 }
 
 // ==============================
-// LOAD ALL USERS
+// LOAD ANY PATH
 // ==============================
 function loadUsers() {
+  const path = document.getElementById("dbPath").value.trim();
+  if (!path) return alert("Enter database path");
+
   document.getElementById("output").textContent = "Loading...";
 
-  db.ref("users").once("value")
-    .then(snapshot => {
-      document.getElementById("output").textContent =
-        JSON.stringify(snapshot.val(), null, 2);
-    })
-    .catch(err => {
-      document.getElementById("output").textContent = "Error: " + err.message;
-    });
+  db.ref(path).once("value").then(snap => {
+    document.getElementById("output").textContent =
+      JSON.stringify(snap.val(), null, 2);
+  });
 }
 
 // ==============================
-// ADD COINS
+// ADD COINS TO USER
 // ==============================
 function addCoins() {
-  const uid = prompt("Enter Telegram User ID:");
-  const amount = Number(prompt("Enter coins to add:"));
+  const uid = document.getElementById("uid").value.trim();
+  const amount = Number(document.getElementById("addAmount").value.trim());
 
-  if (!uid || !amount) {
-    alert("Both fields required");
-    return;
-  }
+  if (!uid) return alert("Enter user Telegram ID");
+  if (!amount) return alert("Enter coin amount");
 
-  const ref = db.ref("users/" + uid + "/coins");
+  const path = "users/" + uid + "/coins";
+  const ref = db.ref(path);
 
   ref.once("value").then(snap => {
     const current = snap.val() || 0;
@@ -96,7 +97,7 @@ function addCoins() {
     ref.set(newBalance);
 
     document.getElementById("output").textContent =
-      "Added " + amount + " coins to " + uid +
+      "Added " + amount + " coins to " + uid + 
       "\nNew Balance: " + newBalance;
   });
 }
