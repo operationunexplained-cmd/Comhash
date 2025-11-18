@@ -1,40 +1,460 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Hacker Tapper — Full Single File</title>
+<title>Hacker Tapper — Telegram Mini App</title>
 
-<!-- Telegram WebApp -->
+<!-- Telegram WebApp SDK (required) -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- MoneyTag Ad SDK (your provided script; keep this in <head>) -->
-<script src="//libtl.com/sdk.js" data-zone="10199103" data-sdk="show_10199103" id="moneytag-ad"></script>
-
-<!-- Firebase compat SDKs (work in single HTML) -->
+<!-- Firebase compat SDKs (single-file friendly) -->
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"></script>
 
 <style>
-  :root{--bg:#04040a;--panel:#071021;--accent:#00e5a8;--muted:#8fb3c9}
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#04040a);color:#cfeff0}
-  .wrap{max-width:760px;margin:12px auto;padding:16px}
+  :root{--bg:#020610;--card:#071425;--accent:#00e5a8;--muted:#93b6c6}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#020610);color:#d8f6f0}
+  .wrap{max-width:720px;margin:12px auto;padding:14px}
   header{display:flex;justify-content:space-between;align-items:center;gap:12px}
   h1{margin:0;font-size:20px}
-  .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-  #gameArea{margin-top:12px;display:grid;grid-template-columns:1fr 320px;gap:12px}
-  #left{min-height:360px;padding:12px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  #game{display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px}
+  #left{padding:12px}
   #right{padding:12px}
-  #tapBtn{display:block;width:100%;padding:18px;border-radius:12px;background:linear-gradient(180deg,#002827,#00403a);border:0;color:white;font-weight:800;font-size:18px;cursor:pointer}
-  .hud{display:flex;justify-content:space-between;gap:8px;margin-top:12px}
-  .stat{padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);min-width:0}
+  .hud{display:flex;gap:10px;justify-content:space-between;margin-bottom:10px}
+  .stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;min-width:0}
+  #tapBtn{width:100%;padding:16px;border-radius:12px;background:linear-gradient(180deg,#023c32,#01513f);border:0;color:#fff;font-weight:800;font-size:18px}
+  .small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
+  #hackAnim{height:130px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:hidden;font-family:monospace}
+  .line{opacity:0;transform:translateY(6px);animation:in .45s forwards}
+  @keyframes in{to{opacity:1;transform:none}}
+  #glitch{position:fixed;inset:0;display:none;z-index:9999;pointer-events:none}
+  .glitchLayer{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));mix-blend-mode:screen;filter:contrast(1.2) saturate(1.2);animation:glitchAnim .8s ease-in-out}
+  @keyframes glitchAnim{0%{transform:translateX(0)}50%{transform:translateX(6px) skewX(-2deg)}100%{transform:translateX(0)}}
+  ol{padding-left:18px;margin:8px 0}
   .muted{color:var(--muted);font-size:13px}
-  button.small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
-  #leaderboard{margin-top:12px;max-height:220px;overflow:auto}
-  ol#lbList{padding-left:18px;margin:6px 0}
-  #refBox{margin-top:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.01);word-break:break-all}
-  #hackAnim{margin-top:10px;height:140px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:hidden;font-family:monospace}
-  .terminalLine{opacity:0;transform:translateY(6px);animation:flyIn .45s forwards}
+  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
+  .closeX{position:absolute;right:8px;top:6px;cursor:pointer;color:var(--muted)}
+  @media (max-width:480px){#game{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap card">
+  <header>
+    <div>
+      <h1>💻 Hacker Tapper</h1>
+      <div class="muted">Inside Telegram — tap, watch, invite, win.</div>
+    </div>
+    <div id="playerTag" class="muted">Loading...</div>
+  </header>
+
+  <div id="game" class="card">
+    <div id="left">
+      <div class="hud">
+        <div class="stat">Balance: <strong id="balance">0</strong> TOK</div>
+        <div class="stat">Score: <strong id="score">0</strong></div>
+        <div class="stat">Taps: <strong id="taps">0</strong></div>
+      </div>
+
+      <div id="hackAnim" aria-hidden="false"></div>
+
+      <button id="tapBtn">TAP TO INJECT</button>
+
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="small" id="watchAdBtn">Watch Ad (reward)</button>
+        <button class="small" id="missionsBtn">Missions</button>
+        <button class="small" id="inviteBtn">Invite</button>
+      </div>
+
+      <div id="refBox" class="muted" style="margin-top:12px">Referral: <span id="refLink">-</span></div>
+    </div>
+
+    <aside id="right">
+      <div>
+        <h3 style="margin:0">Leaderboard</h3>
+        <div id="leaderboard" style="margin-top:8px">
+          <ol id="lbList"></ol>
+        </div>
+
+        <div style="margin-top:12px"><strong>Booster:</strong> <span id="boosterInfo">None</span></div>
+
+        <div style="margin-top:12px"><strong>Recent Loot:</strong>
+          <div id="lootList" class="muted" style="max-height:120px;overflow:auto"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <div class="muted" style="margin-top:12px">Host over HTTPS. Replace config & server URLs before production.</div>
+</div>
+
+<div id="glitch"><div class="glitchLayer"></div></div>
+
+<!-- modal container -->
+<div id="modalRoot"></div>
+
+<script>
+/* ---------- CONFIG - REPLACE THESE ---------- */
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_FIREBASE_API_KEY",
+  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+  projectId: "YOUR_FIREBASE_PROJECT_ID",
+  storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+  appId: "YOUR_FIREBASE_APP_ID"
+};
+const VERIFY_PLAY_URL = 'https://us-central1-YOUR_PROJECT.cloudfunctions.net/verifyPlay'; // server verify (Cloud Function)
+const VERIFY_AD_URL = 'https://your-server.example.com/verifyAdReward'; // server endpoint to verify ad receipts
+const BOT_USERNAME = 'YOUR_BOT_USERNAME'; // without @
+const MONEYTAG_ZONE_SCRIPT = { src: '//libtl.com/sdk.js', dataset: { zone: '10199103', sdk: 'show_10199103' }, funcName: 'show_10199103' };
+/* ------------------------------------------- */
+
+/* Defensive helpers */
+function $id(id){ return document.getElementById(id); }
+function createNode(tag, attrs = {}){ const el = document.createElement(tag); Object.assign(el, attrs); return el; }
+function showModal(title, bodyHtml){
+  const m = createNode('div'); m.className='modal';
+  m.innerHTML = `<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${bodyHtml}</div>`;
+  document.getElementById('modalRoot').appendChild(m);
+  m.querySelector('.closeX').onclick = ()=>m.remove();
+  return m;
+}
+
+/* Initialize Firebase (compat) */
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.firestore();
+const usersColl = db.collection('users');
+const lbColl = db.collection('leaderboard');
+
+/* Telegram WebApp init */
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+if (!tg){
+  // still allow running in normal browser for testing, but warn
+  console.warn('Telegram WebApp object missing. Open inside Telegram for full functionality.');
+}
+try { tg?.expand(); } catch(e){}
+
+const tgUser = tg?.initDataUnsafe?.user || {};
+const playerId = String(tgUser?.id || ('guest_' + Math.random().toString(36).slice(2,9)));
+const playerName = (tgUser?.first_name || 'Guest');
+$id('playerTag').textContent = `${playerName} • ${playerId}`;
+
+/* referral detection (Telegram passes start_param into initDataUnsafe.start_param) */
+const startParam = tg?.initDataUnsafe?.start_param || null;
+let referrerId = null;
+if (startParam && startParam.startsWith('ref_')) referrerId = startParam.replace('ref_','');
+
+/* state */
+let balance = Number(localStorage.getItem('ht_balance') || 0);
+let score = Number(localStorage.getItem('ht_score') || 0);
+let totalTaps = Number(localStorage.getItem('ht_totalTaps') || 0);
+let tapBuffer = 0;
+let booster = { multiplier:1, expiresAt:0 };
+let recentLoot = [];
+
+/* UI update */
+function render(){
+  $id('balance').textContent = balance;
+  $id('score').textContent = score;
+  $id('taps').textContent = totalTaps;
+  $id('boosterInfo').textContent = (booster.multiplier>1 && Date.now() < booster.expiresAt) ? `x${booster.multiplier} (exp ${new Date(booster.expiresAt).toLocaleTimeString()})` : 'None';
+  $id('refLink').textContent = `https://t.me/${BOT_USERNAME}?start=ref_${playerId}`;
+  $id('lootList').innerHTML = recentLoot.slice().reverse().map(l=>`<div>${new Date(l.ts).toLocaleTimeString()}: +${l.amount} TOK (${l.reason})</div>`).join('');
+}
+render();
+
+/* ensure user doc exists */
+async function ensureUser(){
+  const docRef = usersColl.doc(playerId);
+  const snap = await docRef.get();
+  if (!snap.exists){
+    await docRef.set({
+      playerId, username: playerName, balance, score, totalTaps,
+      booster: null, referrer: referrerId || null, referral_claimed:false, createdAt: Date.now()
+    });
+    if (referrerId) await applyReferral(referrerId);
+  } else {
+    const data = snap.data();
+    balance = Number(data.balance || balance);
+    score = Number(data.score || score);
+    totalTaps = Number(data.totalTaps || totalTaps);
+    if (data.booster && data.booster.expiresAt && Date.now() < data.booster.expiresAt) booster = data.booster;
+    // load recent loot
+    const q = db.collection('lootHistory').where('playerId','==',playerId).orderBy('ts','desc').limit(6);
+    const res = await q.get();
+    recentLoot = res.docs.map(d=>d.data());
+  }
+  render();
+}
+ensureUser().catch(console.error);
+
+/* apply referral once */
+async function applyReferral(refId){
+  try {
+    const uRef = usersColl.doc(playerId);
+    const snap = await uRef.get();
+    if (!snap.exists) return;
+    const data = snap.data();
+    if (data.referral_claimed) return;
+    await uRef.update({ referral_claimed:true });
+    const newUserReward = 50;
+    balance += newUserReward;
+    await uRef.update({ balance });
+    const refRef = usersColl.doc(refId);
+    const refSnap = await refRef.get();
+    if (refSnap.exists){
+      const prev = Number(refSnap.data().balance || 0);
+      const refReward = 100;
+      await refRef.update({ balance: prev + refReward });
+      await db.collection('referrals').add({ referrer: refId, referee: playerId, ts: Date.now(), refReward, newUserReward });
+    }
+    await lbColl.doc(playerId).set({ playerId, username: playerName, balance });
+    render();
+  } catch(e){ console.error('applyReferral', e); }
+}
+
+/* persist state */
+async function persist(force=false){
+  localStorage.setItem('ht_balance', String(balance));
+  localStorage.setItem('ht_score', String(score));
+  localStorage.setItem('ht_totalTaps', String(totalTaps));
+  if (tapBuffer >= 20 || force){
+    tapBuffer = 0;
+    try{
+      await usersColl.doc(playerId).set({ playerId, username: playerName, balance, score, totalTaps, booster:(booster.multiplier>1?booster:null) }, { merge:true });
+      await lbColl.doc(playerId).set({ playerId, username: playerName, balance });
+    }catch(e){ console.warn('persist error', e); }
+  }
+}
+setInterval(()=>persist(true), 15000);
+
+/* hack animation */
+function pushLine(text){
+  const el = document.createElement('div');
+  el.className = 'line';
+  el.textContent = text;
+  hackAnimEl.appendChild(el);
+  while (hackAnimEl.children.length > 6) hackAnimEl.removeChild(hackAnimEl.firstChild);
+}
+
+/* glitch */
+function showGlitch(ms=800){
+  const g = $id('glitch');
+  g.style.display = 'block';
+  setTimeout(()=> g.style.display = 'none', ms);
+}
+
+/* loot grant */
+async function grantLoot(amount, reason='event'){
+  balance += amount;
+  recentLoot.push({ amount, reason, ts: Date.now() });
+  if (recentLoot.length>12) recentLoot.shift();
+  render();
+  try {
+    await db.collection('lootHistory').add({ playerId, amount, reason, ts: Date.now() });
+    await usersColl.doc(playerId).set({ balance }, { merge:true });
+    await lbColl.doc(playerId).set({ playerId, username: playerName, balance });
+  } catch(e){ console.warn('grantLoot error', e); }
+}
+
+/* booster */
+async function giveBooster(mult, dur){
+  booster = { multiplier: mult, expiresAt: Date.now() + dur*1000 };
+  try { await usersColl.doc(playerId).set({ booster }, { merge:true }); } catch(e){ console.warn('booster write', e); }
+  render();
+  setTimeout(()=>{ if (Date.now() >= booster.expiresAt){ booster = { multiplier:1, expiresAt:0 }; render(); } }, dur*1000 + 200);
+}
+
+/* leader refresh */
+async function refreshLeaderboard(){
+  try {
+    const snaps = await lbColl.orderBy('balance','desc').limit(16).get();
+    lbList.innerHTML = '';
+    snaps.forEach(d => {
+      const dd = d.data();
+      const li = document.createElement('li');
+      li.textContent = `${dd.username || dd.playerId} — ${dd.balance}`;
+      lbList.appendChild(li);
+    });
+  } catch(e) { console.warn('lb error', e); }
+}
+refreshLeaderboard();
+setInterval(refreshLeaderboard, 15000);
+
+/* main tap logic */
+let sessionStart = 0, sessionTaps = 0;
+const hackAnimEl = $id('hackAnim');
+
+$id('tapBtn').addEventListener('click', async ()=>{
+  if (!sessionStart) sessionStart = Date.now();
+  sessionTaps++;
+  totalTaps++; tapBuffer++;
+  const now = Date.now();
+  const mult = (booster.multiplier>1 && booster.expiresAt > now) ? booster.multiplier : 1;
+  const gain = Math.round(1 * mult + Math.random()*1);
+  score += gain;
+  if (totalTaps % 5 === 0){
+    const tok = Math.max(1, Math.floor(gain/1));
+    balance += tok;
+    recentLoot.push({ amount: tok, reason:'tap_reward', ts: Date.now() });
+    if (recentLoot.length>12) recentLoot.shift();
+  }
+  render();
+  pushLine(`> injected +${gain} pts`);
+  if (Math.random() < 0.03) showGlitch(700);
+  if (Math.random() < 0.02) { const amt = Math.floor(Math.random()*50)+25; await grantLoot(amt,'random_drop'); }
+  if (totalTaps % 30 === 0){
+    await onThirty();
+    // verify session with server
+    const durationMs = Date.now() - (sessionStart || Date.now());
+    const sessionId = 'sess_' + (sessionStart || Date.now()) + '_' + Math.random().toString(36).slice(2,8);
+    verifyPlay(sessionId, sessionTaps, durationMs).catch(()=>{});
+    sessionStart = 0; sessionTaps = 0;
+  }
+  if (tapBuffer >= 20) await persist();
+});
+
+/* 30-tap stacked actions */
+async function onThirty(){
+  // auto-show ad, play animation, show mission, glitch, loot, booster
+  const adResult = await showAdFlow(); // returns 'rewarded'|'skipped'|'failed'
+  pushLine('!!! SYSTEM EVENT: 30 TAPS !!!');
+  showGlitch(900);
+  showMission('30_tap_event','30 taps event — claim your reward!');
+  if (adResult === 'rewarded'){
+    await giveBooster(2, 20);
+    const loot = Math.floor(Math.random()*150)+50;
+    await grantLoot(loot,'ad_loot');
+    showModal('Reward', `Ad watched — Booster x2 (20s) +${loot} TOK (server verify pending).`);
+  } else {
+    const small = 20; await grantLoot(small,'no_ad_cons'); showModal('Notice', `Ad not available — you got ${small} TOK.`);
+  }
+}
+
+/* show mission popup */
+function showMission(id, text){
+  const m = createNode('div'); m.className='modal';
+  m.innerHTML = `<div class="closeX">✕</div><h3>Mission</h3><div style="margin-top:8px">${text}</div>
+    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+      <div class="muted">Reward: 100 TOK</div>
+      <button id="claimBtn" class="small">Claim</button>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(m);
+  m.querySelector('.closeX').onclick = ()=>m.remove();
+  m.querySelector('#claimBtn').onclick = async ()=>{
+    try {
+      const docRef = usersColl.doc(playerId);
+      const snap = await docRef.get();
+      const data = snap.data() || {};
+      if (data.missions && data.missions[id] && data.missions[id].claimed){ alert('Already claimed'); m.remove(); return; }
+      const updates = {}; updates[`missions.${id}`] = { claimed:true, ts:Date.now(), reward:100 };
+      await docRef.set(updates, { merge:true });
+      await grantLoot(100,'mission_claim');
+      m.remove();
+    } catch(e){ console.error('claim err', e); alert('Claim failed'); }
+  };
+}
+
+/* Ad flow: load MoneyTag SDK lazily and call its function if present.
+   Fallbacks: tg.Ad or confirm simulation.
+*/
+let moneytagLoaded = false;
+function injectMoneyTag(){
+  if (moneytagLoaded) return;
+  const s = document.createElement('script');
+  s.src = MONEYTAG_ZONE_SCRIPT.src;
+  s.id = 'moneytag-sdk';
+  // add dataset attributes if sdk requires them
+  s.dataset.zone = MONEYTAG_ZONE_SCRIPT.dataset.zone;
+  s.dataset.sdk = MONEYTAG_ZONE_SCRIPT.dataset.sdk;
+  s.onload = ()=>{ moneytagLoaded = true; console.log('MoneyTag SDK loaded'); };
+  s.onerror = ()=>{ console.warn('MoneyTag SDK failed to load'); };
+  document.head.appendChild(s);
+}
+
+/* Call this to show monetag ad (if SDK exposes window function), else tg.Ad, else simulate */
+async function showAdFlow(){
+  // ensure SDK injected (do it lazily)
+  injectMoneyTag();
+  // small delay to allow load in real env
+  await new Promise(r=>setTimeout(r, 500));
+
+  // MoneyTag global function name may vary — using option from initial script: show_10199103
+  try {
+    if (typeof window.show_10199103 === 'function'){
+      try { window.show_10199103(); } catch(e){ console.warn('moneytag call failed', e); }
+      // best practice: rely on Monetag webhook for server verification rather than client receipts
+      // optimistic return:
+      return 'rewarded';
+    }
+  } catch(e){ console.warn(e); }
+
+  // Try Telegram's ad API
+  try {
+    if (tg && tg.Ad && typeof tg.Ad.show === 'function'){
+      const res = await tg.Ad.show(); // may return 'rewarded' or others
+      if (res === 'rewarded' || res === true) {
+        // optional: call server to verify if platform provides a receipt
+        await callVerifyAdServer({ playerId, source:'tg' }).catch(()=>{});
+        return 'rewarded';
+      }
+      return 'skipped';
+    }
+  } catch(e){ console.warn('tg.Ad error', e); }
+
+  // fallback: simulate for testing
+  const ok = confirm('Simulate ad (OK = watched & rewarded)?');
+  if (ok) { await callVerifyAdServer({ playerId, simulated:true }).catch(()=>{}); return 'rewarded'; }
+  return 'skipped';
+}
+
+/* server verification helpers */
+async function callVerifyAdServer(payload){
+  try { await fetch(VERIFY_AD_URL, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload) }); }
+  catch(e){ console.warn('callVerifyAdServer failed', e); }
+}
+async function verifyPlay(sessionId, taps, durationMs){
+  try {
+    const res = await fetch(VERIFY_PLAY_URL, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ playerId, taps, durationMs, sessionId, username: playerName }) });
+    if (!res.ok){ console.warn('verifyPlay rejected', await res.text()); return false; }
+    const data = await res.json();
+    if (data && data.ok && data.tokensAward){
+      // sync balance from server user doc
+      const snap = await usersColl.doc(playerId).get();
+      if (snap.exists){ balance = Number(snap.data().balance || balance); render(); }
+      return true;
+    }
+    return false;
+  } catch(e){ console.warn('verifyPlay error', e); return false; }
+}
+
+/* small helper to create nodes */
+function createNode(tag){ return document.createElement(tag); }
+
+/* manual UI controls */
+$id('watchAdBtn').addEventListener('click', async ()=>{ const r = await showAdFlow(); if (r==='rewarded'){ await grantLoot(50,'manual_ad'); alert('Ad rewarded 50 TOK (server verify)'); } else alert('Ad skipped/unavailable'); });
+$id('missionsBtn').addEventListener('click', ()=>showMission('manual1','Manual mission: claim 25 TOK'));
+$id('inviteBtn').addEventListener('click', ()=>{ const link = `https://t.me/${BOT_USERNAME}?start=ref_${playerId}`; navigator.clipboard?.writeText(link).then(()=>alert('Referral link copied'), ()=>alert(link)); });
+
+/* persist & unload */
+window.addEventListener('beforeunload', ()=>persist(true));
+setInterval(()=>{ if (tapBuffer>0) persist(); }, 5000);
+
+/* Pre-inject MoneyTag after Telegram signals ready to reduce blocking risk */
+try {
+  // If Telegram is present, wait a short time after init then inject
+  if (tg) {
+    tg.onEvent && tg.onEvent('themeChanged', ()=>{}); // noop to ensure tg is ready
+    setTimeout(()=>injectMoneyTag(), 800);
+  } else {
+    // still inject for browser testing
+    setTimeout(()=>injectMoneyTag(), 800);
+  }
+} catch(e){ console.warn('inject schedule error', e); }
+
+</script>
+</body>
+</html>  .terminalLine{opacity:0;transform:translateY(6px);animation:flyIn .45s forwards}
   @keyframes flyIn{to{opacity:1;transform:none}}
   #glitch{position:fixed;inset:0;pointer-events:none;display:none;align-items:center;justify-content:center;z-index:9999}
   .glitchBox{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));backdrop-filter:contrast(1.2) saturate(1.2);mix-blend-mode:screen;animation:glitchPulse .8s ease-in-out}
