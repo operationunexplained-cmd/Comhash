@@ -1,179 +1,371 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hacker Tapper — Simple</title>
-  <style>
-    body{font-family:Arial;background:#fafafa;color:#111;margin:0;padding:18px;display:flex;justify-content:center}
-    .wrap{width:420px;background:#fff;border-radius:10px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,0.06)}
-    h1{margin:0 0 8px;font-size:20px}
-    .muted{color:#666;font-size:13px}
-    .hud{display:flex;gap:8px;margin:12px 0}
-    .stat{flex:1;background:#f5f7fb;border-radius:8px;padding:10px;text-align:center}
-    .big{font-weight:800;font-size:18px;color:#0b8457}
-    #hackArea{height:120px;background:#f0f6f4;border-radius:8px;padding:8px;font-family:monospace;overflow:auto}
-    .controls{display:flex;gap:8px;margin-top:12px}
-    button{padding:10px 12px;border-radius:8px;border:0;cursor:pointer}
-    #tapBtn{background:#0b8457;color:#fff;font-weight:800;flex:1}
-    .small{background:transparent;border:1px solid #e0e8e6;color:#0b8457;border-radius:8px;padding:8px}
-    .notice{background:#fff4e5;border:1px solid #ffe1b8;padding:8px;border-radius:8px;margin-top:12px;color:#663c00}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Hacker Tapper — ComHash (Telegram Mini App)</title>
+
+<!-- Telegram WebApp -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- Firebase Realtime Database (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+
+<!-- MoneyTag SDK (your existing) -->
+<script src="//libtl.com/sdk.js" data-zone="10199103" data-sdk="show_10199103"></script>
+
+<style>
+:root{--bg:#020610;--card:#071425;--accent:#00e5a8;--muted:#93b6c6}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#020610);color:#d8f6f0}
+.wrap{max-width:920px;margin:12px auto;padding:14px}
+.header{display:flex;justify-content:space-between;align-items:center}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:12px;margin-top:12px}
+@media(max-width:780px){.grid{grid-template-columns:1fr}}
+.hud{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
+.stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;min-width:0}
+#tapBtn{width:100%;padding:16px;border-radius:12px;background:linear-gradient(180deg,#023c32,#01513f);border:0;color:#fff;font-weight:800;font-size:18px}
+.small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
+#hackAnim{height:140px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:hidden;font-family:monospace}
+.lb{max-height:420px;overflow:auto}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
+.closeX{position:absolute;right:8px;top:6px;cursor:pointer;color:var(--muted)}
+#glitch{position:fixed;inset:0;display:none;z-index:9999;pointer-events:none}
+.glitchLayer{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));mix-blend-mode:screen;filter:contrast(1.2) saturate(1.2);animation:glitchAnim .8s ease-in-out}
+@keyframes glitchAnim{0%{transform:translateX(0)}50%{transform:translateX(6px) skewX(-2deg)}100%{transform:translateX(0)}}
+.muted{color:var(--muted);font-size:13px}
+</style>
 </head>
 <body>
-  <div class="wrap" id="app">
-    <h1>💻 Hacker Tapper</h1>
-    <div class="muted">Simple UI — TAP, WATCH, CLAIM</div>
-
-    <div class="hud">
-      <div class="stat"><div class="muted">Balance</div><div id="balance" class="big">0</div></div>
-      <div class="stat"><div class="muted">Score</div><div id="score" class="big">0</div></div>
-      <div class="stat"><div class="muted">Taps</div><div id="taps" class="big">0</div></div>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h2 style="margin:.2rem 0">💻 Hacker Tapper — ComHash</h2>
+      <div class="muted">Inside Telegram — tap, watch, invite, win.</div>
     </div>
-
-    <div id="hackArea">Welcome — press TAP to start hacking.</div>
-
-    <div class="controls">
-      <button id="tapBtn">TAP TO INJECT</button>
-      <button id="watchAdBtn" class="small">Watch Ad</button>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-      <button id="missionBtn" class="small">Claim Test Mission</button>
-      <div style="margin-left:auto" class="muted">Referral: <span id="refLink">-</span></div>
-    </div>
-
-    <div id="tgNotice" class="notice hidden"></div>
+    <div id="playerTag" class="muted">Loading...</div>
   </div>
 
-  <!-- SDK -->
-  <script src="//libtl.com/sdk.js" data-zone="10199103" data-sdk="show_10199103"></script>
+  <div class="card grid">
+    <main id="left">
+      <div class="hud">
+        <div class="stat">Balance: <strong id="balance">0</strong> TOK</div>
+        <div class="stat">Score: <strong id="score">0</strong></div>
+        <div class="stat">Taps: <strong id="taps">0</strong></div>
+      </div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+      <div id="hackAnim" class="card"></div>
 
-  <script>
+      <button id="tapBtn">TAP TO INJECT</button>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
-    authDomain: "comhashgame.firebaseapp.com",
-    databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
-    projectId: "comhashgame",
-    storageBucket: "comhashgame.firebasestorage.app",
-    messagingSenderId: "392187080052",
-    appId: "1:392187080052:web:3e31391442ca1315dc1021"
-  };
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="small" id="watchAdBtn">Watch Ad (reward)</button>
+        <button class="small" id="missionsBtn">Missions</button>
+        <button class="small" id="inviteBtn">Invite</button>
+      </div>
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  const usersRef = db.ref("users");
+      <div style="margin-top:12px" class="muted">Referral: <span id="refLink">-</span></div>
+    </main>
 
-  const $ = id => document.getElementById(id);
+    <aside id="right">
+      <div>
+        <h3 style="margin:0">Leaderboard (Top 100)</h3>
+        <div class="card lb" id="leaderboard"><ol id="lbList"></ol></div>
 
-  /************************************
-   REAL MODE + TEST MODE AUTO HANDLING
-  *************************************/
-  const tg = window.Telegram?.WebApp || null;
-  const tgUser = tg?.initDataUnsafe?.user || null;
+        <div style="margin-top:12px"><strong>Booster:</strong> <span id="boosterInfo">None</span></div>
 
-  let playerId, playerName;
+        <div style="margin-top:12px"><strong>Recent Loot:</strong>
+          <div id="lootList" class="muted" style="max-height:120px;overflow:auto"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
 
-  if (tgUser && tgUser.id) {
-      // REAL TELEGRAM USER
-      playerId = "tg_" + tgUser.id;
-      playerName = tgUser.first_name || "Player";
-      $("tgNotice").classList.add("hidden");
+  <div id="glitch"><div class="glitchLayer"></div></div>
+  <div id="modalRoot"></div>
+  <div class="muted" style="margin-top:10px">Host over HTTPS. Replace CONFIG values at top if needed.</div>
+</div>
+
+<script>
+/* ================== CONFIG - REPLACE BEFORE DEPLOY ==================
+ * FIREBASE_CONFIG: your Realtime Database config (you already provided).
+ * VERIFY_AD_URL & VERIFY_PLAY_URL: your backend endpoints (HTTPS).
+ * ADMIN_API_KEY: secret key expected by verifyPlay endpoint.
+ * MONEYTAG_ZONE: your MoneyTag zone (you supplied 10199103).
+ * ================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
+  authDomain: "comhashgame.firebaseapp.com",
+  databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
+  projectId: "comhashgame",
+  storageBucket: "comhashgame.appspot.com",
+  messagingSenderId: "392187080052",
+  appId: "1:39218708052:web:3e31391442ca1315dc1021" // keep your original appId if different
+};
+
+// Replace these with your real endpoints (I used your Vercel example)
+const VERIFY_AD_URL   = "https://comhashgame.vercel.app/verifyAd";
+const VERIFY_PLAY_URL = "https://comhashgame.vercel.app/verifyPlay";
+const ADMIN_API_KEY   = "COMHASH_ADMIN_2025"; // change to a strong secret
+const MONEYTAG_ZONE   = "10199103";
+const MONEYTAG_FUNC   = "show_10199103"; // MoneyTag function created by their SDK
+/* ================================================================== */
+
+function $id(id){ return document.getElementById(id); }
+function createNode(tag, attrs={}){ const el=document.createElement(tag); Object.assign(el, attrs); return el; }
+
+/* ---------- Init Firebase (Realtime DB) ---------- */
+firebase.initializeApp(FIREBASE_CONFIG);
+const rdb = firebase.database();
+const usersRef = rdb.ref('users');
+const lootRef = rdb.ref('lootHistory');
+
+/* ---------- Telegram WebApp ---------- */
+const tg = window.Telegram?.WebApp || null;
+try { tg?.expand?.(); } catch(e){}
+const tgUser = tg?.initDataUnsafe?.user || {};
+const playerId = String(tgUser?.id || ('guest_' + Math.random().toString(36).slice(2,9)));
+const playerName = tgUser?.first_name || 'Guest';
+$id('playerTag').textContent = `${playerName} • ${playerId}`;
+
+/* referral detection */
+const startParam = tg?.initDataUnsafe?.start_param || null;
+let referrerId = (startParam && startParam.startsWith('ref_')) ? startParam.replace('ref_','') : null;
+
+/* ---------- State ---------- */
+let balance = Number(localStorage.getItem('ht_balance') || 0);
+let score = Number(localStorage.getItem('ht_score') || 0);
+let totalTaps = Number(localStorage.getItem('ht_totalTaps') || 0);
+let tapBuffer = 0;
+let booster = { multiplier:1, expiresAt:0 };
+let recentLoot = [];
+
+/* ---------- UI helpers ---------- */
+function render(){
+  $id('balance').textContent = balance;
+  $id('score').textContent = score;
+  $id('taps').textContent = totalTaps;
+  $id('boosterInfo').textContent = (booster.multiplier>1 && Date.now()<booster.expiresAt) ? `x${booster.multiplier} (exp ${new Date(booster.expiresAt).toLocaleTimeString()})` : 'None';
+  $id('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
+  $id('lootList').innerHTML = recentLoot.slice().reverse().map(l=>`<div>${new Date(l.ts).toLocaleTimeString()}: +${l.amount} TOK (${l.reason})</div>`).join('');
+}
+render();
+
+function pushLine(text){
+  const el = createNode('div'); el.textContent = text; $id('hackAnim').appendChild(el);
+  while($id('hackAnim').children.length > 6) $id('hackAnim').removeChild($id('hackAnim').firstChild);
+}
+function showModal(title, html){
+  const m = createNode('div'); m.className = 'modal'; m.innerHTML = `<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`; $id('modalRoot').appendChild(m);
+  m.querySelector('.closeX').onclick = ()=> m.remove();
+  return m;
+}
+function showGlitch(ms=800){ const g = $id('glitch'); g.style.display = 'block'; setTimeout(()=> g.style.display = 'none', ms); }
+
+/* ---------- Ensure user exists in RTDB ---------- */
+async function ensureUserRTDB(){
+  const snap = await usersRef.child(playerId).get();
+  if (!snap.exists()){
+    await usersRef.child(playerId).set({ playerId, username: playerName, balance:0, score:0, totalTaps:0, createdAt: Date.now(), referrer: referrerId || null });
+    if (referrerId) await applyReferralRTDB(referrerId);
   } else {
-      // TEST MODE — for Chrome/Browser
-      playerId = "test_" + (Math.floor(Math.random()*900000)+100000);
-      playerName = "TestUser";
-      $("tgNotice").textContent = "TEST MODE ENABLED — NOT INSIDE TELEGRAM";
-      $("tgNotice").classList.remove("hidden");
+    const d = snap.val();
+    balance = Number(d.balance || balance);
+    score = Number(d.score || score);
+    totalTaps = Number(d.totalTaps || totalTaps);
+    if (d.booster && d.booster.expiresAt && Date.now() < d.booster.expiresAt) booster = d.booster;
+    const lootSnap = await lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(6).get();
+    recentLoot = []; lootSnap.forEach(s => recentLoot.push(s.val()));
   }
-
-  $("refLink").textContent = "https://t.me/comhash_bot?start=ref_" + playerId;
-
-  let balance = 0, score = 0, taps = 0;
-
-  /********************
-   INIT USER IN DB
-  *********************/
-  usersRef.child(playerId).once("value").then(snap => {
-      if (!snap.exists()) {
-          usersRef.child(playerId).set({
-              playerId,
-              username: playerName,
-              balance: 0,
-              score: 0,
-              totalTaps: 0,
-              createdAt: Date.now()
-          });
-      } else {
-          const d = snap.val();
-          balance = d.balance || 0;
-          score = d.score || 0;
-          taps = d.totalTaps || 0;
-      }
-      render();
-  });
-
-  usersRef.child(playerId).on("value", s => {
-      if (!s.exists()) return;
-      const d = s.val();
-      balance = d.balance || 0;
-      score = d.score || 0;
-      taps = d.totalTaps || 0;
-      render();
-  });
-
-  function render() {
-      $("balance").textContent = balance;
-      $("score").textContent = score;
-      $("taps").textContent = taps;
+  render();
+}
+async function applyReferralRTDB(refId){
+  const myRef = usersRef.child(playerId);
+  const mySnap = await myRef.get();
+  if (!mySnap.exists) return;
+  if (mySnap.val().referral_claimed) return;
+  await myRef.update({ referral_claimed: true });
+  balance += 50; await myRef.update({ balance });
+  const refRef = usersRef.child(refId);
+  const refSnap = await refRef.get();
+  if (refSnap.exists()){
+    const prev = Number(refSnap.val().balance || 0);
+    await refRef.update({ balance: prev + 100 });
   }
+  render();
+}
+ensureUserRTDB().catch(console.error);
 
-  /********************
-   TAP BUTTON
-  *********************/
-  $("tapBtn").onclick = async () => {
-      score += 1;
-      taps += 1;
-      if (taps % 5 === 0) balance += 1;
-      render();
-      push("> injected +1");
+/* ---------- Persist state (RTDB) ---------- */
+async function persist(force=false){
+  localStorage.setItem('ht_balance', String(balance));
+  localStorage.setItem('ht_score', String(score));
+  localStorage.setItem('ht_totalTaps', String(totalTaps));
+  if (tapBuffer >= 20 || force){
+    tapBuffer = 0;
+    await usersRef.child(playerId).update({ balance, score, totalTaps, booster: (booster.multiplier>1 ? booster : null) });
+  }
+}
+setInterval(()=>persist(true), 15000);
 
-      usersRef.child(playerId).update({
-          score, totalTaps: taps, balance
+/* ---------- Grant loot & booster ---------- */
+async function grantLoot(amount, reason='event'){
+  balance += amount;
+  recentLoot.push({ amount, reason, ts: Date.now() });
+  if (recentLoot.length > 12) recentLoot.shift();
+  render();
+  await lootRef.push({ playerId, amount, reason, ts: Date.now() });
+  await usersRef.child(playerId).update({ balance });
+}
+
+async function giveBooster(mult, durSec){
+  booster = { multiplier: mult, expiresAt: Date.now() + durSec*1000 };
+  await usersRef.child(playerId).update({ booster });
+  render();
+  setTimeout(()=>{ if (Date.now() >= booster.expiresAt){ booster = { multiplier:1, expiresAt:0 }; render(); } }, durSec*1000 + 200);
+}
+
+/* ---------- Real-time Top 100 leaderboard (RTDB) ---------- */
+const lbListEl = $id('lbList');
+usersRef.orderByChild('balance').limitToLast(100).on('value', snap => {
+  const arr = [];
+  snap.forEach(s => arr.push(s.val()));
+  arr.reverse();
+  lbListEl.innerHTML = '';
+  arr.forEach((u, i) => {
+    const li = createNode('li');
+    li.textContent = `${i+1}. ${u.username || u.playerId} — ${Number(u.balance || 0)} TOK`;
+    lbListEl.appendChild(li);
+  });
+});
+
+/* ---------- MoneyTag usage & verification flow ---------- */
+let moneytagLoaded = false;
+function injectMoneyTag(){
+  if (moneytagLoaded) return;
+  const script = document.querySelector('script[data-sdk="show_10199103"]');
+  if (script) { moneytagLoaded = true; return; }
+  const s = createNode('script');
+  s.src = '//libtl.com/sdk.js';
+  s.dataset.zone = MONEYTAG_ZONE;
+  s.dataset.sdk = MONEYTAG_FUNC;
+  s.onload = ()=> { moneytagLoaded = true; console.log('MoneyTag SDK loaded'); };
+  s.onerror = ()=> { console.warn('MoneyTag SDK failed to load'); };
+  document.head.appendChild(s);
+}
+injectMoneyTag();
+
+async function showAdFlow(){
+  // Ensure SDK present
+  await new Promise(r => setTimeout(r, 450));
+  const fn = window[MONEYTAG_FUNC];
+  if (typeof fn === 'function'){
+    // Try to call MoneyTag SDK. Different MoneyTag versions expose different callback patterns,
+    // many simply open a UI and call your server via webhook when ad finishes.
+    // Here we call it and then call VERIFY_AD_URL to inform server about the attempt.
+    try {
+      fn(); // open MoneyTag UI
+    } catch(e){
+      console.warn('MoneyTag call failed', e);
+      return 'skipped';
+    }
+
+    // Let server know client attempted ad (server should rely on MoneyTag webhook for authoritative reward).
+    try {
+      await fetch(VERIFY_AD_URL, {
+        method: 'POST',
+        headers: {'content-type':'application/json'},
+        body: JSON.stringify({ playerId, source: 'client_trigger' })
       });
-  };
-
-  /********************
-    WATCH AD
-  *********************/
-  function push(t) {
-      const el = document.createElement("div");
-      el.textContent = t;
-      $("hackArea").appendChild(el);
+      // optimistic small reward while server will give final reward on webhook
+      await grantLoot(10, 'ad_opt_reward');
+      return 'requested';
+    } catch(e){
+      console.warn('verifyAd call failed', e);
+      return 'skipped';
+    }
   }
 
-  $("watchAdBtn").onclick = async () => {
-      balance += 50;
-      render();
-      push("Ad reward +50 TOK");
-      usersRef.child(playerId).update({ balance });
-  };
+  // Fallback testing simulation
+  const ok = confirm('Ad not available — simulate watch (OK = rewarded)?');
+  if (ok){ await grantLoot(50, 'ad_sim'); return 'rewarded'; }
+  return 'skipped';
+}
 
-  /********************
-    MISSION
-  *********************/
-  $("missionBtn").onclick = async () => {
-      balance += 100;
-      render();
-      alert("Mission Claimed +100 TOK");
-      usersRef.child(playerId).update({ balance });
-  };
+/* ---------- Tap logic ---------- */
+let sessionStart = 0, sessionTaps = 0;
+$id('tapBtn').addEventListener('click', async () => {
+  if (!sessionStart) sessionStart = Date.now();
+  sessionTaps++; totalTaps++; tapBuffer++;
+  const mult = (booster.multiplier>1 && booster.expiresAt > Date.now()) ? booster.multiplier : 1;
+  const gain = Math.round(1 * mult + Math.random());
+  score += gain;
+  if (totalTaps % 5 === 0){
+    const tok = Math.max(1, Math.floor(gain/1));
+    balance += tok;
+    recentLoot.push({ amount: tok, reason: 'tap_reward', ts: Date.now() });
+    if (recentLoot.length > 12) recentLoot.shift();
+  }
+  render();
+  pushLine(`> injected +${gain} pts`);
+  if (Math.random() < 0.03) showGlitch(700);
+  if (Math.random() < 0.02) { const amt = Math.floor(Math.random()*50) + 25; await grantLoot(amt,'random_drop'); }
+  if (totalTaps % 30 === 0){
+    // Verify session with your backend (anti-cheat). Server should validate and award tokens.
+    const durationMs = Date.now() - (sessionStart || Date.now());
+    const sessionId = 'sess_' + (sessionStart || Date.now()) + '_' + Math.random().toString(36).slice(2,8);
+    (async ()=>{
+      try {
+        await fetch(VERIFY_PLAY_URL, {
+          method: 'POST',
+          headers: {'content-type':'application/json','x-admin-key': ADMIN_API_KEY},
+          body: JSON.stringify({ playerId, sessionId, taps: sessionTaps, durationMs, username: playerName })
+        });
+      } catch(e){ console.warn('verifyPlay call failed', e); }
+    })();
+    sessionStart = 0; sessionTaps = 0;
+    await onThirty();
+  }
+  if (tapBuffer >= 20) { await persist(); }
+});
 
-  </script>
+/* ---------- 30-tap actions ---------- */
+async function onThirty(){
+  pushLine('!!! SYSTEM EVENT: 30 TAPS !!!');
+  showGlitch(900);
+  const res = await showAdFlow();
+  if (res === 'requested' || res === 'rewarded'){
+    await giveBooster(2, 20);
+    const loot = Math.floor(Math.random()*150) + 50;
+    await grantLoot(loot, '30tap_bonus');
+    showModal('Reward', `Booster x2 (20s) +${loot} TOK (server verify pending).`);
+  } else {
+    const small = 20; await grantLoot(small,'no_ad'); showModal('Notice', `Ad not available — you got ${small} TOK.`);
+  }
+}
+
+/* ---------- Buttons ---------- */
+$id('watchAdBtn').addEventListener('click', async ()=> {
+  const r = await showAdFlow();
+  if (r === 'requested' || r === 'rewarded') alert('Ad flow started / rewarded (server verify pending)');
+  else alert('Ad skipped or not available');
+});
+
+$id('missionsBtn').addEventListener('click', ()=> {
+  const m = showModal('Mission', 'Manual mission: Claim 100 TOK<br><button id="claimBtn">Claim</button>');
+  m.querySelector('#claimBtn').onclick = async ()=>{ await grantLoot(100,'mission_claim'); m.remove(); };
+});
+
+$id('inviteBtn').addEventListener('click', ()=> {
+  const link = `https://t.me/comhash_bot?start=ref_${playerId}`;
+  navigator.clipboard?.writeText(link).then(()=> alert('Referral link copied'), ()=> alert(link));
+});
+
+/* ---------- Persist / Cleanup ---------- */
+window.addEventListener('beforeunload', ()=> persist(true));
+setInterval(()=>{ if (tapBuffer>0) persist(); }, 5000);
+
+</script>
 </body>
 </html>
