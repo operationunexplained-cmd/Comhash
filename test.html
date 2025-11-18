@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+</head>
+<body>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
+    authDomain: "comhashgame.firebaseapp.com",
+    databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
+    projectId: "comhashgame",
+    storageBucket: "comhashgame.appspot.com",
+    messagingSenderId: "392187080052",
+    appId: "1:392187080052:web:3e31391442ca1315dc1021"
+  };
+  firebase.initializeApp(firebaseConfig);
+
+  firebase.database().ref('users/testUser').set({
+    coins: 10,
+    score: 5
+  }).then(()=>alert('Write successful'))
+  .catch(e=>alert('Write failed: '+e));
+</script>
+</body>
+</html>
