@@ -7,17 +7,31 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
 <style>
 body{font-family:sans-serif;padding:10px;background:#020610;color:#fff}
-table{width:100%;border-collapse:collapse}
+h2{margin-top:0}
+table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{padding:6px;border:1px solid #444;text-align:left}
+input{width:60px}
 button{padding:4px 8px;margin:2px;background:#00e5a8;color:#000;border:none;border-radius:4px;cursor:pointer}
+#createForm{margin-top:12px;background:#071425;padding:8px;border-radius:6px}
 </style>
 </head>
 <body>
 <h2>Hacker Tapper Admin Panel</h2>
+
 <button id="loadUsers">Load All Users</button>
+
 <table id="usersTable">
-<tr><th>Telegram ID</th><th>Username</th><th>Coins</th><th>Score</th><th>Action</th></tr>
+<tr><th>Telegram ID</th><th>Username</th><th>Coins</th><th>Score</th><th>Booster</th><th>Actions</th></tr>
 </table>
+
+<div id="createForm">
+  <h3>Create New User</h3>
+  <label>Telegram ID: <input type="text" id="newId"></label><br>
+  <label>Username: <input type="text" id="newName"></label><br>
+  <label>Coins: <input type="number" id="newCoins" value="0"></label><br>
+  <label>Score: <input type="number" id="newScore" value="0"></label><br>
+  <button id="createUser">Create User</button>
+</div>
 
 <script>
 const firebaseConfig = {
@@ -34,8 +48,9 @@ const db = firebase.database();
 
 const table = document.getElementById('usersTable');
 
+// Load all users
 document.getElementById('loadUsers').onclick = async ()=>{
-  table.innerHTML = '<tr><th>Telegram ID</th><th>Username</th><th>Coins</th><th>Score</th><th>Action</th></tr>';
+  table.innerHTML = '<tr><th>Telegram ID</th><th>Username</th><th>Coins</th><th>Score</th><th>Booster</th><th>Actions</th></tr>';
   try {
     const snapshot = await db.ref('users').get();
     if (!snapshot.exists()) { alert('No users found'); return; }
@@ -45,22 +60,51 @@ document.getElementById('loadUsers').onclick = async ()=>{
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${uid}</td>
-        <td>${user.username || ''}</td>
-        <td><input type="number" value="${user.coins||0}" style="width:60px"></td>
-        <td>${user.score||0}</td>
-        <td><button data-uid="${uid}">Update Coins</button></td>
+        <td><input type="text" value="${user.username||''}"></td>
+        <td><input type="number" value="${user.coins||0}"></td>
+        <td><input type="number" value="${user.score||0}"></td>
+        <td><input type="text" value="${user.booster ? JSON.stringify(user.booster) : ''}"></td>
+        <td>
+          <button data-uid="${uid}" class="updateBtn">Update</button>
+          <button data-uid="${uid}" class="deleteBtn">Delete</button>
+        </td>
       `;
       table.appendChild(tr);
-      tr.querySelector('button').onclick = ()=>{
-        const newCoins = Number(tr.querySelector('input').value);
-        db.ref('users/' + uid + '/coins').set(newCoins)
-          .then(()=>alert('Coins updated'))
+      // Update user
+      tr.querySelector('.updateBtn').onclick = ()=>{
+        const updated = {
+          username: tr.children[1].querySelector('input').value,
+          coins: Number(tr.children[2].querySelector('input').value),
+          score: Number(tr.children[3].querySelector('input').value),
+          booster: tr.children[4].querySelector('input').value ? JSON.parse(tr.children[4].querySelector('input').value) : null
+        };
+        db.ref('users/' + uid).set(updated)
+          .then(()=>alert('Updated successfully'))
           .catch(e=>alert('Error: '+e));
+      };
+      // Delete user
+      tr.querySelector('.deleteBtn').onclick = ()=>{
+        if(confirm('Delete user '+uid+'?')){
+          db.ref('users/' + uid).remove().then(()=>tr.remove()).catch(e=>alert('Delete failed: '+e));
+        }
       };
     });
   } catch(e){
     alert('Load failed: '+e);
   }
+};
+
+// Create new user
+document.getElementById('createUser').onclick = ()=>{
+  const uid = document.getElementById('newId').value.trim();
+  const uname = document.getElementById('newName').value.trim();
+  const coins = Number(document.getElementById('newCoins').value);
+  const score = Number(document.getElementById('newScore').value);
+  if(!uid || !uname){ alert('Telegram ID and Username required'); return; }
+  const newUser = { username: uname, coins, score, booster:null, createdAt: Date.now() };
+  db.ref('users/' + uid).set(newUser)
+    .then(()=>{ alert('User created'); document.getElementById('loadUsers').click(); })
+    .catch(e=>alert('Create failed: '+e));
 };
 </script>
 </body>
