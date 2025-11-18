@@ -88,12 +88,7 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:line
 </div>
 
 <script>
-/* ================== CONFIG - REPLACE BEFORE DEPLOY ==================
- * FIREBASE_CONFIG: your Realtime Database config (you already provided).
- * VERIFY_AD_URL & VERIFY_PLAY_URL: your backend endpoints (HTTPS).
- * ADMIN_API_KEY: secret key expected by verifyPlay endpoint.
- * MONEYTAG_ZONE: your MoneyTag zone (you supplied 10199103).
- * ================================================================== */
+/* ================== CONFIG ================== */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
   authDomain: "comhashgame.firebaseapp.com",
@@ -101,32 +96,37 @@ const FIREBASE_CONFIG = {
   projectId: "comhashgame",
   storageBucket: "comhashgame.appspot.com",
   messagingSenderId: "392187080052",
-  appId: "1:39218708052:web:3e31391442ca1315dc1021" // keep your original appId if different
+  appId: "1:39218708052:web:3e31391442ca1315dc1021"
 };
 
-// Replace these with your real endpoints (I used your Vercel example)
 const VERIFY_AD_URL   = "https://comhashgame.vercel.app/verifyAd";
 const VERIFY_PLAY_URL = "https://comhashgame.vercel.app/verifyPlay";
-const ADMIN_API_KEY   = "COMHASH_ADMIN_2025"; // change to a strong secret
+const ADMIN_API_KEY   = "COMHASH_ADMIN_2025";
 const MONEYTAG_ZONE   = "10199103";
-const MONEYTAG_FUNC   = "show_10199103"; // MoneyTag function created by their SDK
-/* ================================================================== */
+const MONEYTAG_FUNC   = "show_10199103";
 
+/* ================== HELPERS ================== */
 function $id(id){ return document.getElementById(id); }
 function createNode(tag, attrs={}){ const el=document.createElement(tag); Object.assign(el, attrs); return el; }
 
-/* ---------- Init Firebase (Realtime DB) ---------- */
+/* ---------- Firebase Init ---------- */
 firebase.initializeApp(FIREBASE_CONFIG);
 const rdb = firebase.database();
 const usersRef = rdb.ref('users');
 const lootRef = rdb.ref('lootHistory');
 
-/* ---------- Telegram WebApp ---------- */
+/* ---------- Telegram User Setup ---------- */
 const tg = window.Telegram?.WebApp || null;
 try { tg?.expand?.(); } catch(e){}
-const tgUser = tg?.initDataUnsafe?.user || {};
-const playerId = String(tgUser?.id || ('guest_' + Math.random().toString(36).slice(2,9)));
-const playerName = tgUser?.first_name || 'Guest';
+
+const tgUser = tg?.initDataUnsafe?.user;
+if (!tgUser || !tgUser.id) {
+  alert('Telegram login required!');
+  throw new Error('No Telegram user detected');
+}
+
+const playerId = String(tgUser.id);          // Telegram ID only
+const playerName = tgUser.first_name || 'Guest';
 $id('playerTag').textContent = `${playerName} • ${playerId}`;
 
 /* referral detection */
@@ -134,9 +134,9 @@ const startParam = tg?.initDataUnsafe?.start_param || null;
 let referrerId = (startParam && startParam.startsWith('ref_')) ? startParam.replace('ref_','') : null;
 
 /* ---------- State ---------- */
-let balance = Number(localStorage.getItem('ht_balance') || 0);
-let score = Number(localStorage.getItem('ht_score') || 0);
-let totalTaps = Number(localStorage.getItem('ht_totalTaps') || 0);
+let balance = 0;
+let score = 0;
+let totalTaps = 0;
 let tapBuffer = 0;
 let booster = { multiplier:1, expiresAt:0 };
 let recentLoot = [];
@@ -156,34 +156,48 @@ function pushLine(text){
   const el = createNode('div'); el.textContent = text; $id('hackAnim').appendChild(el);
   while($id('hackAnim').children.length > 6) $id('hackAnim').removeChild($id('hackAnim').firstChild);
 }
+
 function showModal(title, html){
   const m = createNode('div'); m.className = 'modal'; m.innerHTML = `<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`; $id('modalRoot').appendChild(m);
   m.querySelector('.closeX').onclick = ()=> m.remove();
   return m;
 }
+
 function showGlitch(ms=800){ const g = $id('glitch'); g.style.display = 'block'; setTimeout(()=> g.style.display = 'none', ms); }
 
 /* ---------- Ensure user exists in RTDB ---------- */
 async function ensureUserRTDB(){
   const snap = await usersRef.child(playerId).get();
   if (!snap.exists()){
-    await usersRef.child(playerId).set({ playerId, username: playerName, balance:0, score:0, totalTaps:0, createdAt: Date.now(), referrer: referrerId || null });
+    await usersRef.child(playerId).set({
+      playerId,
+      username: playerName,
+      balance: 0,
+      score: 0,
+      totalTaps: 0,
+      createdAt: Date.now(),
+      referrer: referrerId || null
+    });
     if (referrerId) await applyReferralRTDB(referrerId);
   } else {
     const d = snap.val();
-    balance = Number(d.balance || balance);
-    score = Number(d.score || score);
-    totalTaps = Number(d.totalTaps || totalTaps);
+    balance = Number(d.balance || 0);
+    score = Number(d.score || 0);
+    totalTaps = Number(d.totalTaps || 0);
     if (d.booster && d.booster.expiresAt && Date.now() < d.booster.expiresAt) booster = d.booster;
+
+    // Load last 6 loot entries
     const lootSnap = await lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(6).get();
-    recentLoot = []; lootSnap.forEach(s => recentLoot.push(s.val()));
+    recentLoot = [];
+    lootSnap.forEach(s => recentLoot.push(s.val()));
   }
   render();
 }
+
 async function applyReferralRTDB(refId){
   const myRef = usersRef.child(playerId);
   const mySnap = await myRef.get();
-  if (!mySnap.exists) return;
+  if (!mySnap.exists()) return;
   if (mySnap.val().referral_claimed) return;
   await myRef.update({ referral_claimed: true });
   balance += 50; await myRef.update({ balance });
@@ -195,13 +209,11 @@ async function applyReferralRTDB(refId){
   }
   render();
 }
+
 ensureUserRTDB().catch(console.error);
 
-/* ---------- Persist state (RTDB) ---------- */
+/* ---------- Persist state ---------- */
 async function persist(force=false){
-  localStorage.setItem('ht_balance', String(balance));
-  localStorage.setItem('ht_score', String(score));
-  localStorage.setItem('ht_totalTaps', String(totalTaps));
   if (tapBuffer >= 20 || force){
     tapBuffer = 0;
     await usersRef.child(playerId).update({ balance, score, totalTaps, booster: (booster.multiplier>1 ? booster : null) });
@@ -226,7 +238,7 @@ async function giveBooster(mult, durSec){
   setTimeout(()=>{ if (Date.now() >= booster.expiresAt){ booster = { multiplier:1, expiresAt:0 }; render(); } }, durSec*1000 + 200);
 }
 
-/* ---------- Real-time Top 100 leaderboard (RTDB) ---------- */
+/* ---------- Leaderboard ---------- */
 const lbListEl = $id('lbList');
 usersRef.orderByChild('balance').limitToLast(100).on('value', snap => {
   const arr = [];
@@ -240,7 +252,7 @@ usersRef.orderByChild('balance').limitToLast(100).on('value', snap => {
   });
 });
 
-/* ---------- MoneyTag usage & verification flow ---------- */
+/* ---------- MoneyTag ---------- */
 let moneytagLoaded = false;
 function injectMoneyTag(){
   if (moneytagLoaded) return;
@@ -257,37 +269,20 @@ function injectMoneyTag(){
 injectMoneyTag();
 
 async function showAdFlow(){
-  // Ensure SDK present
   await new Promise(r => setTimeout(r, 450));
   const fn = window[MONEYTAG_FUNC];
   if (typeof fn === 'function'){
-    // Try to call MoneyTag SDK. Different MoneyTag versions expose different callback patterns,
-    // many simply open a UI and call your server via webhook when ad finishes.
-    // Here we call it and then call VERIFY_AD_URL to inform server about the attempt.
-    try {
-      fn(); // open MoneyTag UI
-    } catch(e){
-      console.warn('MoneyTag call failed', e);
-      return 'skipped';
-    }
-
-    // Let server know client attempted ad (server should rely on MoneyTag webhook for authoritative reward).
+    try { fn(); } catch(e){ console.warn('MoneyTag call failed', e); return 'skipped'; }
     try {
       await fetch(VERIFY_AD_URL, {
         method: 'POST',
         headers: {'content-type':'application/json'},
         body: JSON.stringify({ playerId, source: 'client_trigger' })
       });
-      // optimistic small reward while server will give final reward on webhook
       await grantLoot(10, 'ad_opt_reward');
       return 'requested';
-    } catch(e){
-      console.warn('verifyAd call failed', e);
-      return 'skipped';
-    }
+    } catch(e){ console.warn('verifyAd call failed', e); return 'skipped'; }
   }
-
-  // Fallback testing simulation
   const ok = confirm('Ad not available — simulate watch (OK = rewarded)?');
   if (ok){ await grantLoot(50, 'ad_sim'); return 'rewarded'; }
   return 'skipped';
@@ -312,7 +307,6 @@ $id('tapBtn').addEventListener('click', async () => {
   if (Math.random() < 0.03) showGlitch(700);
   if (Math.random() < 0.02) { const amt = Math.floor(Math.random()*50) + 25; await grantLoot(amt,'random_drop'); }
   if (totalTaps % 30 === 0){
-    // Verify session with your backend (anti-cheat). Server should validate and award tokens.
     const durationMs = Date.now() - (sessionStart || Date.now());
     const sessionId = 'sess_' + (sessionStart || Date.now()) + '_' + Math.random().toString(36).slice(2,8);
     (async ()=>{
@@ -352,20 +346,30 @@ $id('watchAdBtn').addEventListener('click', async ()=> {
   else alert('Ad skipped or not available');
 });
 
-$id('missionsBtn').addEventListener('click', ()=> {
-  const m = showModal('Mission', 'Manual mission: Claim 100 TOK<br><button id="claimBtn">Claim</button>');
-  m.querySelector('#claimBtn').onclick = async ()=>{ await grantLoot(100,'mission_claim'); m.remove(); };
+$id('missionsBtn').addEventListener(''id('missionsBtn').addEventListener('click', () => {
+  showModal('Missions', `
+    <ul>
+      <li>Tap 100 times → +100 TOK</li>
+      <li>Invite 1 friend → +100 TOK</li>
+      <li>Watch 5 ads → +50 TOK</li>
+    </ul>
+    <p>Complete these in Telegram to earn rewards automatically.</p>
+  `);
 });
 
-$id('inviteBtn').addEventListener('click', ()=> {
+$id('inviteBtn').addEventListener('click', () => {
   const link = `https://t.me/comhash_bot?start=ref_${playerId}`;
-  navigator.clipboard?.writeText(link).then(()=> alert('Referral link copied'), ()=> alert(link));
+  showModal('Invite Friends', `<p>Share this link to invite friends:<br><strong>${link}</strong></p>`);
 });
 
-/* ---------- Persist / Cleanup ---------- */
-window.addEventListener('beforeunload', ()=> persist(true));
-setInterval(()=>{ if (tapBuffer>0) persist(); }, 5000);
+/* ---------- Auto-save on unload ---------- */
+window.addEventListener('beforeunload', async () => {
+  await persist(true);
+});
 
+/* ---------- Initial rendering ---------- */
+render();
+pushLine('Welcome to Hacker Tapper — ComHash!');
 </script>
 </body>
 </html>
