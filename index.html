@@ -123,7 +123,7 @@ function showModal(title, bodyHtml){
 }
 
 /* Initialize Firebase (compat) */
-firebase.initializeApp(FIREBASE_CONFIG);
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const usersColl = db.collection('users');
 const lbColl = db.collection('leaderboard');
