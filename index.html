@@ -1,40 +1,207 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Hacker Tapper — Telegram Mini App</title>
+  <title>Hacker Tapper</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src='//libtl.com/sdk.js' data-zone='10199103' data-sdk='show_10199103'></script>
 
-<!-- Telegram WebApp SDK (required) -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: Arial; background:#000; color:#0f0; text-align:center; padding:20px; }
+    #tapBtn { padding:20px; background:#111; color:#0f0; border:2px solid #0f0; border-radius:10px; margin-top:20px; font-size:20px; }
+    button { padding:12px; border-radius:8px; background:#0f0; border:none; margin:5px; font-weight:bold; }
+    #popup, #breach { display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+      background:rgba(0,0,0,0.9); color:#0f0; padding-top:40%; font-size:24px; }
+    #loot { margin-top:10px; color:#fff; }
+  </style>
+</head>
 
-<!-- Firebase compat SDKs (single-file friendly) -->
-<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"></script>
+<body>
 
-<style>
-  :root{--bg:#020610;--card:#071425;--accent:#00e5a8;--muted:#93b6c6}
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#020610);color:#d8f6f0}
-  .wrap{max-width:720px;margin:12px auto;padding:14px}
-  header{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  h1{margin:0;font-size:20px}
-  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-  #game{display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px}
-  #left{padding:12px}
-  #right{padding:12px}
-  .hud{display:flex;gap:10px;justify-content:space-between;margin-bottom:10px}
-  .stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;min-width:0}
-  #tapBtn{width:100%;padding:16px;border-radius:12px;background:linear-gradient(180deg,#023c32,#01513f);border:0;color:#fff;font-weight:800;font-size:18px}
-  .small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
-  #hackAnim{height:130px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:hidden;font-family:monospace}
-  .line{opacity:0;transform:translateY(6px);animation:in .45s forwards}
-  @keyframes in{to{opacity:1;transform:none}}
-  #glitch{position:fixed;inset:0;display:none;z-index:9999;pointer-events:none}
-  .glitchLayer{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));mix-blend-mode:screen;filter:contrast(1.2) saturate(1.2);animation:glitchAnim .8s ease-in-out}
-  @keyframes glitchAnim{0%{transform:translateX(0)}50%{transform:translateX(6px) skewX(-2deg)}100%{transform:translateX(0)}}
-  ol{padding-left:18px;margin:8px 0}
-  .muted{color:var(--muted);font-size:13px}
-  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
+<h2>💻 Hacker Tapper</h2>
+<p id="username"></p>
+
+<p>Balance: <span id="coins">0</span> TOK</p>
+<p>Score: <span id="score">0</span></p>
+<p>Taps: <span id="taps">0</span></p>
+
+<button id="tapBtn">TAP TO INJECT</button>
+
+<div>
+  <button onclick="showAd()">Watch Ad</button>
+  <button onclick="showMissions()">Missions</button>
+  <button onclick="shareInvite()">Invite</button>
+  <button onclick="openLeaderboard()">Leaderboard</button>
+</div>
+
+<p>Referral: <span id="ref">-</span></p>
+<p>Booster: <span id="booster">None</span></p>
+
+<div id="loot"></div>
+
+<!-- Popups -->
+<div id="popup">MISSION PANEL</div>
+<div id="breach">⚠ SYSTEM BREACH DETECTED ⚠</div>
+
+<script type="module">
+
+/* ------------------- FIREBASE SDK --------------------- */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+/* ------------------- FIREBASE CONFIG --------------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
+  authDomain: "comhashgame.firebaseapp.com",
+  databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
+  projectId: "comhashgame",
+  storageBucket: "comhashgame.firebasestorage.app",
+  messagingSenderId: "392187080052",
+  appId: "1:392187080052:web:3e31391442ca1315dc1021",
+  measurementId: "G-0YWTXYJ7RN"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* ------------------- TELEGRAM LOGIN --------------------- */
+const tg = window.Telegram.WebApp;
+tg.expand();
+
+const user = tg.initDataUnsafe?.user;
+
+if (!user) {
+  alert("Telegram login failed.");
+}
+
+const USER_ID = user.id;
+const USERNAME = user.username || user.first_name;
+document.getElementById("username").innerText = "Welcome, " + USERNAME;
+
+/* ------------------- INIT USER --------------------- */
+
+async function initUser() {
+  const userRef = ref(db, "users/" + USER_ID);
+  const snap = await get(userRef);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const refID = urlParams.get("start");
+
+  if (!snap.exists()) {
+    await set(userRef, {
+      username: USERNAME,
+      coins: 0,
+      score: 0,
+      taps: 0,
+      booster: "none",
+      referredBy: refID || "-",
+      createdAt: Date.now()
+    });
+
+    if (refID && refID !== USER_ID) {
+      await update(ref(db, "users/" + refID), {
+        coins: (snap.val()?.coins || 0) + 50
+      });
+    }
+  }
+
+  loadUser();
+}
+
+initUser();
+
+/* ------------------- LOAD USER DATA --------------------- */
+async function loadUser() {
+  const snap = await get(ref(db, "users/" + USER_ID));
+  if (!snap.exists()) return;
+
+  const data = snap.val();
+  document.getElementById("coins").innerText = data.coins;
+  document.getElementById("score").innerText = data.score;
+  document.getElementById("taps").innerText = data.taps;
+  document.getElementById("ref").innerText = data.referredBy;
+  document.getElementById("booster").innerText = data.booster;
+}
+
+/* ------------------- TAP LOGIC --------------------- */
+let tapCount = 0;
+
+document.getElementById("tapBtn").onclick = async function () {
+  tapCount++;
+
+  const snap = await get(ref(db, "users/" + USER_ID));
+  const data = snap.val();
+
+  const newCoins = data.coins + 1;
+  const newScore = data.score + 1;
+  const newTaps = data.taps + 1;
+
+  await update(ref(db, "users/" + USER_ID), {
+    coins: newCoins,
+    score: newScore,
+    taps: newTaps
+  });
+
+  loadUser();
+
+  if (tapCount >= 30) {
+    tapCount = 0;
+    showAd();
+    showLoot();
+    breachEffect();
+  }
+};
+
+/* ------------------- SHOW MONEYTAG AD --------------------- */
+function showAd() {
+  try {
+    window.show_10199103(); // MoneyTag
+  } catch {
+    alert("Ad failed");
+  }
+}
+
+/* ------------------- MISSIONS PANEL --------------------- */
+function showMissions() {
+  document.getElementById("popup").style.display = "block";
+  setTimeout(() => {
+    document.getElementById("popup").style.display = "none";
+  }, 2000);
+}
+
+/* ------------------- SYSTEM BREACH --------------------- */
+function breachEffect() {
+  const el = document.getElementById("breach");
+  el.style.display = "block";
+  setTimeout(() => el.style.display = "none", 1500);
+}
+
+/* ------------------- LOOT BOX --------------------- */
+function showLoot() {
+  const loot = Math.floor(Math.random() * 20) + 5;
+  document.getElementById("loot").innerText = "Loot + " + loot;
+
+  update(ref(db, "users/" + USER_ID), {
+    coins: Number(document.getElementById("coins").innerText) + loot
+  });
+
+  loadUser();
+}
+
+/* ------------------- LEADERBOARD --------------------- */
+function openLeaderboard() {
+  window.location.href = "leaderboard.html";
+}
+
+/* ------------------- INVITE LINK --------------------- */
+function shareInvite() {
+  tg.openTelegramLink("https://t.me/your_bot?start=" + USER_ID);
+}
+
+</script>
+
+</body>
+</html>  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
   .closeX{position:absolute;right:8px;top:6px;cursor:pointer;color:var(--muted)}
   @media (max-width:480px){#game{grid-template-columns:1fr;}}
 </style>
