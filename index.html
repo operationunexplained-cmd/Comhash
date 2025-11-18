@@ -125,9 +125,9 @@ const startParam = tg?.initDataUnsafe?.start_param || null;
 let referrerId = (startParam && startParam.startsWith('ref_')) ? startParam.replace('ref_','') : null;
 
 /* ----------------- State (FIXED: Initialized to 0, NOT from localStorage) ----------------- */
-let balance = 0; // FIXED: Removed localStorage.getItem('ht_balance')
-let score = 0;   // FIXED: Removed localStorage.getItem('ht_score')
-let totalTaps = 0; // FIXED: Removed localStorage.getItem('ht_totalTaps')
+let balance = 0; 
+let score = 0;   
+let totalTaps = 0; 
 let tapBuffer = 0;
 let booster = { multiplier:1, expiresAt:0 };
 let recentLoot = [];
@@ -142,7 +142,6 @@ function render(){
   $id('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
   $id('lootList').innerHTML = recentLoot.slice().reverse().map(l=>`<div>${new Date(l.ts).toLocaleTimeString()}: +${l.amount} TOK (${l.reason})</div>`).join('');
 }
-// FIXED: Removed the initial render() call here
 
 function pushLine(text){
   const el = createNode('div'); el.textContent = text;
@@ -154,6 +153,13 @@ function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; set
 
 /* ----------------- Ensure user exists in RTDB (FIXED: Prioritizes DB load) ----------------- */
 async function ensureUser(){
+  // ⛔️ START TEMPORARY CACHE CLEAR FIX ⛔️
+  // REMOVE these three lines once you confirm the score problem is fixed for all users/devices.
+  localStorage.removeItem('ht_balance');
+  localStorage.removeItem('ht_score');
+  localStorage.removeItem('ht_totalTaps');
+  // ⛔️ END TEMPORARY CACHE CLEAR FIX ⛔️
+  
   try{
     const snap = await usersRef.child(playerId).get();
     if (!snap.exists()){
@@ -165,9 +171,9 @@ async function ensureUser(){
     } else {
       // Existing user: Load authoritative state from DB
       const d = snap.val();
-      balance = Number(d.balance || 0); // Use 0 as default, not stale local state
-      score = Number(d.score || 0); // Use 0 as default, not stale local state
-      totalTaps = Number(d.totalTaps || 0); // Use 0 as default, not stale local state
+      balance = Number(d.balance || 0); 
+      score = Number(d.score || 0); 
+      totalTaps = Number(d.totalTaps || 0);
       if (d.booster && d.booster.expiresAt && Date.now() < d.booster.expiresAt) booster = d.booster;
       // load recent loot
       const lootSnap = await lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(6).get();
