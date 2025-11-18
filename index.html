@@ -1,412 +1,262 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hacker Tapper — Telegram Mini App (Test ID fallback)</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Hacker Tapper — Telegram Mini App</title>
 
-  <!-- Telegram WebApp -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Telegram WebApp SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- MoneyTag SDK will be injected lazily to avoid blocking -->
-  <!-- Firebase v8 compat (non-module) - stable inside WebView -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<!-- Firebase compat SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"></script>
 
-  <style>
-    body{font-family:Inter,Arial,sans-serif;background:#021016;color:#dff8f0;margin:0;padding:12px}
-    .wrap{max-width:760px;margin:12px auto}
-    header{display:flex;justify-content:space-between;align-items:center}
-    h1{margin:0;font-size:20px}
-    .card{background:#06202b;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-    #game{display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px}
-    #tapBtn{width:100%;padding:18px;border-radius:12px;background:#01443b;border:0;color:#fff;font-weight:800;font-size:18px;cursor:pointer}
-    .hud{display:flex;gap:8px;justify-content:space-between}
-    .stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:6px}
-    button.small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:#00e5a8;padding:8px;border-radius:8px;cursor:pointer}
-    #hackAnim{height:120px;background:#001219;border-radius:8px;padding:10px;color:#7ef2d7;overflow:hidden;font-family:monospace}
-    .muted{color:#93b6c6;font-size:13px}
-    @media(max-width:480px){#game{grid-template-columns:1fr}}
-  </style>
+<style>
+  :root{--bg:#020610;--card:#071425;--accent:#00e5a8;--muted:#93b6c6}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#020610);color:#d8f6f0}
+  .wrap{max-width:720px;margin:12px auto;padding:14px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  h1{margin:0;font-size:20px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  #game{display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px}
+  #left{padding:12px}
+  #right{padding:12px}
+  .hud{display:flex;gap:10px;justify-content:space-between;margin-bottom:10px}
+  .stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;min-width:0}
+  #tapBtn{width:100%;padding:16px;border-radius:12px;background:linear-gradient(180deg,#023c32,#01513f);border:0;color:#fff;font-weight:800;font-size:18px}
+  .small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
+  #hackAnim{height:130px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:hidden;font-family:monospace}
+  .line{opacity:0;transform:translateY(6px);animation:in .45s forwards}
+  @keyframes in{to{opacity:1;transform:none}}
+  #glitch{position:fixed;inset:0;display:none;z-index:9999;pointer-events:none}
+  .glitchLayer{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));mix-blend-mode:screen;filter:contrast(1.2) saturate(1.2);animation:glitchAnim .8s ease-in-out}
+  @keyframes glitchAnim{0%{transform:translateX(0)}50%{transform:translateX(6px) skewX(-2deg)}100%{transform:translateX(0)}}
+  ol{padding-left:18px;margin:8px 0}
+  .muted{color:var(--muted);font-size:13px}
+  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
+  .closeX{position:absolute;right:8px;top:6px;cursor:pointer;color:var(--muted)}
+  @media (max-width:480px){#game{grid-template-columns:1fr;}}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
+<div class="wrap card">
+  <header>
+    <div>
+      <h1>💻 Hacker Tapper</h1>
+      <div class="muted">Inside Telegram — tap, watch, invite, win.</div>
+    </div>
+    <div id="playerTag" class="muted">Loading...</div>
+  </header>
+
+  <div id="game" class="card">
+    <div id="left">
+      <div class="hud">
+        <div class="stat">Balance: <strong id="balance">0</strong> TOK</div>
+        <div class="stat">Score: <strong id="score">0</strong></div>
+        <div class="stat">Taps: <strong id="taps">0</strong></div>
+      </div>
+
+      <div id="hackAnim" aria-hidden="false"></div>
+
+      <button id="tapBtn">TAP TO INJECT</button>
+
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="small" id="watchAdBtn">Watch Ad (reward)</button>
+        <button class="small" id="missionsBtn">Missions</button>
+        <button class="small" id="inviteBtn">Invite</button>
+      </div>
+
+      <div id="refBox" class="muted" style="margin-top:12px">Referral: <span id="refLink">-</span></div>
+    </div>
+
+    <aside id="right">
       <div>
-        <h1>💻 Hacker Tapper</h1>
-        <div class="muted">Inside Telegram — tap, watch, invite, win.</div>
-      </div>
-      <div id="playerTag" class="muted">Loading...</div>
-    </header>
-
-    <div id="game" class="card">
-      <div id="left">
-        <div class="hud" style="margin-bottom:10px">
-          <div class="stat">Balance: <strong id="balance">0</strong> TOK</div>
-          <div class="stat">Score: <strong id="score">0</strong></div>
-          <div class="stat">Taps: <strong id="taps">0</strong></div>
-        </div>
-
-        <div id="hackAnim"></div>
-
-        <button id="tapBtn">TAP TO INJECT</button>
-
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="small" id="watchAdBtn">Watch Ad (reward)</button>
-          <button class="small" id="missionsBtn">Missions</button>
-          <button class="small" id="inviteBtn">Invite</button>
-        </div>
-
-        <div id="refBox" class="muted" style="margin-top:10px">Referral: <span id="refLink">-</span></div>
-      </div>
-
-      <aside id="right">
         <h3 style="margin:0">Leaderboard</h3>
-        <div id="leaderboard" style="margin-top:8px;max-height:260px;overflow:auto" class="muted">
+        <div id="leaderboard" style="margin-top:8px">
           <ol id="lbList"></ol>
         </div>
 
         <div style="margin-top:12px"><strong>Booster:</strong> <span id="boosterInfo">None</span></div>
+
         <div style="margin-top:12px"><strong>Recent Loot:</strong>
           <div id="lootList" class="muted" style="max-height:120px;overflow:auto"></div>
         </div>
-      </aside>
-    </div>
-
-    <div class="muted" style="margin-top:12px">Host over HTTPS. Replace config & server URLs before production.</div>
+      </div>
+    </aside>
   </div>
+  <div class="muted" style="margin-top:12px">Host over HTTPS. Replace config & server URLs before production.</div>
+</div>
+
+<div id="glitch"><div class="glitchLayer"></div></div>
+<div id="modalRoot"></div>
 
 <script>
-/*
-  Non-module single-file Telegram Mini App.
-  - Uses Telegram UUID; if Telegram absent, uses TEST_FALLBACK_ID
-  - Uses Firebase v8 compat (firestore)
-  - Lazily injects MoneyTag SDK to avoid blocking errors
-  - Replace VERIFY_PLAY_URL and VERIFY_AD_URL with real server endpoints
-  - Replace firebaseConfig if different
-*/
-
-/////////////////////////
-// CONFIG - EDIT THESE //
-/////////////////////////
-const TEST_FALLBACK_ID = "5516578535"; // <-- your provided Telegram ID used as fallback for testing
-const VERIFY_PLAY_URL = 'https://us-central1-YOUR_PROJECT.cloudfunctions.net/verifyPlay'; // replace
-const VERIFY_AD_URL = 'https://your-server.example.com/verifyAdReward'; // replace
-
+/* ---------- CONFIG ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
   authDomain: "comhashgame.firebaseapp.com",
   databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
   projectId: "comhashgame",
-  storageBucket: "comhashgame.appspot.com", // appspot domain (important)
+  storageBucket: "comhashgame.appspot.com",
   messagingSenderId: "392187080052",
   appId: "1:392187080052:web:3e31391442ca1315dc1021",
   measurementId: "G-0YWTXYJ7RN"
 };
-const MONEYTAG_SCRIPT_SRC = "https://libtl.com/sdk.js";
-const MONEYTAG_DATA_ZONE = "10199103";
-const MONEYTAG_FUNC = "show_10199103";
-const BOT_USERNAME = "comhash_bot"; // your bot username (no @)
-/////////////////////////
+const BOT_USERNAME = 'comhash_bot';
+/* --------------------------- */
 
-// initialize firebase v8
+/* Helpers */
+function $id(id){ return document.getElementById(id); }
+function createNode(tag, attrs={}){ const el=document.createElement(tag); Object.assign(el, attrs); return el; }
+function showModal(title, body){ const m=createNode('div'); m.className='modal'; m.innerHTML=`<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${body}</div>`; document.getElementById('modalRoot').appendChild(m); m.querySelector('.closeX').onclick=()=>m.remove(); return m; }
+
+/* Firebase init */
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const usersColl = db.collection('users');
 const lbColl = db.collection('leaderboard');
 
-const DOM = id => document.getElementById(id);
+/* Telegram WebApp */
+const tg = window.Telegram?.WebApp || null;
+const tgUser = tg?.initDataUnsafe?.user || {};
+const playerId = String(tgUser?.id || ('guest_'+Math.random().toString(36).slice(2,9)));
+const playerName = (tgUser?.first_name || 'Guest');
+$id('playerTag').textContent = `${playerName} • ${playerId}`;
 
-// Telegram detection & ID
-const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-if (tg && tg.expand) try { tg.expand(); } catch(e){}
-
-let TELEGRAM_USER = null;
-try { TELEGRAM_USER = tg?.initDataUnsafe?.user || null; } catch(e){ TELEGRAM_USER = null; }
-
-const playerId = TELEGRAM_USER ? String(TELEGRAM_USER.id) : TEST_FALLBACK_ID;
-const playerName = (TELEGRAM_USER && (TELEGRAM_USER.first_name || TELEGRAM_USER.username)) ? (TELEGRAM_USER.first_name || TELEGRAM_USER.username) : ("Guest_" + playerId);
-
-DOM('playerTag').textContent = `${playerName} • ${playerId}`;
-
-// handle start_param referral (Telegram passes in initDataUnsafe.start_param)
-const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) ? tg.initDataUnsafe.start_param : (new URLSearchParams(location.search).get('start') || null);
-let referrerId = null;
-if (startParam && startParam.startsWith('ref_')) referrerId = startParam.replace('ref_','');
-
-// state
-let balance = Number(localStorage.getItem('ht_balance') || 0);
-let score = Number(localStorage.getItem('ht_score') || 0);
-let totalTaps = Number(localStorage.getItem('ht_totalTaps') || 0);
+/* State */
+let balance = Number(localStorage.getItem('ht_balance')||0);
+let score = Number(localStorage.getItem('ht_score')||0);
+let totalTaps = Number(localStorage.getItem('ht_totalTaps')||0);
 let tapBuffer = 0;
-let booster = { multiplier:1, expiresAt:0 };
+let booster = {multiplier:1, expiresAt:0};
 let recentLoot = [];
 
-// UI render
-function renderUI(){
-  DOM('balance').textContent = balance;
-  DOM('score').textContent = score;
-  DOM('taps').textContent = totalTaps;
-  DOM('boosterInfo').textContent = (booster.multiplier>1 && Date.now() < booster.expiresAt) ? `x${booster.multiplier} (exp ${new Date(booster.expiresAt).toLocaleTimeString()})` : 'None';
-  DOM('refLink').textContent = `https://t.me/${BOT_USERNAME}?start=ref_${playerId}`;
-  DOM('lootList').innerHTML = recentLoot.slice().reverse().map(l=>`<div>${new Date(l.ts).toLocaleTimeString()}: +${l.amount} TOK (${l.reason})</div>`).join('');
+/* Render UI */
+function render(){
+  $id('balance').textContent = balance;
+  $id('score').textContent = score;
+  $id('taps').textContent = totalTaps;
+  $id('boosterInfo').textContent = (booster.multiplier>1 && Date.now()<booster.expiresAt)?`x${booster.multiplier} (exp ${new Date(booster.expiresAt).toLocaleTimeString()})`:'None';
+  $id('refLink').textContent = `https://t.me/${BOT_USERNAME}?start=ref_${playerId}`;
+  $id('lootList').innerHTML = recentLoot.slice().reverse().map(l=>`<div>${new Date(l.ts).toLocaleTimeString()}: +${l.amount} TOK (${l.reason})</div>`).join('');
 }
-renderUI();
+render();
 
-// ensure user doc exists & sync
-async function ensureUserDoc(){
-  const ref = usersColl.doc(playerId);
-  const snap = await ref.get();
-  if (!snap.exists){
-    await ref.set({
-      playerId, username: playerName, balance, score, totalTaps,
-      booster: null, referrer: referrerId || null, referral_reward_claimed:false, createdAt: Date.now()
-    });
-    if (referrerId) applyReferralIfEligible(referrerId).catch(console.error);
-  } else {
-    const data = snap.data();
-    balance = Number(data.balance || balance);
-    score = Number(data.score || score);
-    totalTaps = Number(data.totalTaps || totalTaps);
-    if (data.booster && data.booster.expiresAt && Date.now() < data.booster.expiresAt) booster = data.booster;
-    else booster = { multiplier:1, expiresAt:0 };
-    // load recent loot
-    const lootSnap = await db.collection('lootHistory').where('playerId','==',playerId).orderBy('ts','desc').limit(6).get();
-    recentLoot = lootSnap.docs.map(d=>d.data());
+/* User ensure */
+async function ensureUser(){
+  const docRef = usersColl.doc(playerId);
+  const snap = await docRef.get();
+  if(!snap.exists){
+    await docRef.set({playerId, username:playerName, balance, score, totalTaps, booster:null, createdAt:Date.now()});
   }
-  renderUI();
 }
-ensureUserDoc().catch(console.error);
+ensureUser();
 
-// referral reward
-async function applyReferralIfEligible(refId){
-  try {
-    const uRef = usersColl.doc(playerId);
-    const snap = await uRef.get();
-    if (!snap.exists) return;
-    const data = snap.data();
-    if (data.referral_reward_claimed) return;
-    await uRef.update({ referral_reward_claimed: true });
-    const newUserReward = 50;
-    balance += newUserReward;
-    await uRef.update({ balance });
-    const refRef = usersColl.doc(refId);
-    const refSnap = await refRef.get();
-    if (refSnap.exists){
-      const prev = Number(refSnap.data().balance || 0);
-      const refReward = 100;
-      await refRef.update({ balance: prev + refReward });
-      await db.collection('referrals').add({ referrer: refId, referee: playerId, ts: Date.now(), refReward, newUserReward });
-    }
-    await lbColl.doc(playerId).set({ playerId, username: playerName, balance });
-    renderUI();
-  } catch(e){ console.error('applyReferral error', e); }
-}
-
-// persistence
-async function persistState(force=false){
-  localStorage.setItem('ht_balance', String(balance));
-  localStorage.setItem('ht_score', String(score));
-  localStorage.setItem('ht_totalTaps', String(totalTaps));
-  if (tapBuffer >= 20 || force){
-    tapBuffer = 0;
+/* Persist state */
+async function persist(force=false){
+  localStorage.setItem('ht_balance', balance);
+  localStorage.setItem('ht_score', score);
+  localStorage.setItem('ht_totalTaps', totalTaps);
+  if(tapBuffer>=20 || force){
+    tapBuffer=0;
     try{
-      await usersColl.doc(playerId).set({ playerId, username: playerName, balance, score, totalTaps, booster: (booster.multiplier>1?booster:null) }, { merge:true });
-      await lbColl.doc(playerId).set({ playerId, username: playerName, balance });
-    } catch(e){ console.warn('persist error', e); }
+      await usersColl.doc(playerId).set({balance, score, totalTaps, booster:(booster.multiplier>1?booster:null)}, {merge:true});
+      await lbColl.doc(playerId).set({playerId, username:playerName, balance});
+    }catch(e){ console.warn('persist error', e); }
   }
 }
-setInterval(()=>persistState(true), 15000);
+setInterval(()=>persist(true),15000);
 
-// hack animation helper
+/* Hack animation */
+const hackAnimEl = $id('hackAnim');
 function pushLine(text){
-  const el = document.createElement('div'); el.className='line'; el.textContent = text;
-  const anim = DOM('hackAnim');
-  anim.appendChild(el);
-  while (anim.children.length > 6) anim.removeChild(anim.firstChild);
+  const el = createNode('div'); el.className='line'; el.textContent=text;
+  hackAnimEl.appendChild(el);
+  while(hackAnimEl.children.length>6) hackAnimEl.removeChild(hackAnimEl.firstChild);
 }
 
-// glitch
-function showGlitch(ms=800){ const g = DOM('glitch'); if(!g) return; g.style.display='block'; setTimeout(()=>g.style.display='none', ms); }
+/* Glitch effect */
+function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; setTimeout(()=>g.style.display='none',ms); }
 
-// grant loot
-async function grantLoot(amount, reason='event'){
-  balance += amount;
-  recentLoot.push({ amount, reason, ts: Date.now() });
-  if (recentLoot.length>12) recentLoot.shift();
-  renderUI();
-  try {
-    await db.collection('lootHistory').add({ playerId, amount, reason, ts: Date.now() });
-    await usersColl.doc(playerId).set({ balance }, { merge:true });
-    await lbColl.doc(playerId).set({ playerId, username: playerName, balance });
-  } catch(e){ console.warn('grantLoot error', e); }
-}
+/* Grant loot */
+async function grantLoot(amount,reason='event'){ balance+=amount; recentLoot.push({amount, reason, ts:Date.now()}); if(recentLoot.length>12) recentLoot.shift(); render(); await persist(); }
 
-// booster
-async function grantBooster(multiplier, durationSeconds){
-  booster = { multiplier, expiresAt: Date.now() + durationSeconds*1000 };
-  try { await usersColl.doc(playerId).set({ booster }, { merge:true }); } catch(e){ console.warn('grantBooster write', e); }
-  renderUI();
-  setTimeout(()=>{ if (Date.now() >= booster.expiresAt){ booster = { multiplier:1, expiresAt:0 }; renderUI(); } }, durationSeconds*1000 + 200);
-}
+/* Booster */
+async function giveBooster(mult,dur){ booster={multiplier:mult, expiresAt:Date.now()+dur*1000}; render(); setTimeout(()=>{ if(Date.now()>=booster.expiresAt){ booster={multiplier:1,expiresAt:0}; render();}},dur*1000+200); }
 
-// leaderboard refresh
+/* Leaderboard */
 async function refreshLeaderboard(){
-  try {
+  try{
     const snaps = await lbColl.orderBy('balance','desc').limit(16).get();
-    const lb = DOM('lbList'); lb.innerHTML='';
-    snaps.forEach(d => {
-      const dd = d.data();
-      const li = document.createElement('li');
-      li.textContent = `${dd.username || dd.playerId} — ${dd.balance}`;
-      lb.appendChild(li);
-    });
-  } catch(e){ console.warn('lb error', e); }
+    const lbList = $id('lbList');
+    lbList.innerHTML='';
+    snaps.forEach(d=>{ const dd=d.data(); const li=createNode('li'); li.textContent=`${dd.username||dd.playerId} — ${dd.balance}`; lbList.appendChild(li); });
+  }catch(e){ console.warn(e); }
 }
 refreshLeaderboard();
-setInterval(refreshLeaderboard, 15000);
+setInterval(refreshLeaderboard,15000);
 
-// core tap logic
-let sessionStart=0, sessionTaps=0;
-let localTapBuffer = 0;
-DOM('tapBtn').addEventListener('click', async ()=>{
-  if (!sessionStart) sessionStart = Date.now();
-  sessionTaps++; totalTaps++; tapBuffer++; localTapBuffer++;
-  const now = Date.now();
-  const mult = (booster.multiplier>1 && booster.expiresAt > now) ? booster.multiplier : 1;
-  const gain = Math.round(1 * mult + Math.random()*1);
-  score += gain;
-  if (totalTaps % 5 === 0){
-    const tok = Math.max(1, Math.floor(gain/1));
-    balance += tok;
-    recentLoot.push({ amount: tok, reason:'tap_reward', ts: Date.now() });
-    if (recentLoot.length>12) recentLoot.shift();
-  }
-  renderUI();
-  pushLine(`> injected +${gain} pts`);
-  if (Math.random() < 0.03) showGlitch(700);
-  if (Math.random() < 0.02) { const amt = Math.floor(Math.random()*50)+25; await grantLoot(amt,'random_drop'); }
-  if (totalTaps % 30 === 0){
-    await onThirtyTap();
-    const durationMs = Date.now() - (sessionStart || Date.now());
-    const sessionId = 'sess_' + (sessionStart || Date.now()) + '_' + Math.random().toString(36).slice(2,8);
-    verifyPlayWithServer(sessionId, sessionTaps, durationMs).catch(()=>{});
-    sessionStart = 0; sessionTaps = 0;
-  }
-  if (tapBuffer >= 20) await persistState();
-});
-
-// 30 tap stacked
-async function onThirtyTap(){
-  injectMoneyTagIfNeeded();
-  const adRes = await showRewardedAd();
-  pushLine('!!! SYSTEM EVENT: 30 TAPS !!!');
-  showGlitch(900);
-  showMissionPopup('30_tap_event','Complete this 30-tap event to claim reward!');
-  if (adRes === 'rewarded'){ await grantBooster(2,20); const lootAmt = Math.floor(Math.random()*150)+50; await grantLoot(lootAmt,'ad_reward_loot'); showSimpleModal('Reward',`Ad watched — +${lootAmt} TOK (server verify pending)`); }
-  else { const small = 20; await grantLoot(small,'no_ad_consolation'); showSimpleModal('Notice',`Ad unavailable — you received ${small} TOK.`); }
-}
-
-// mission popup
-function showMissionPopup(missionId, text){
-  const m = document.createElement('div'); m.className='modal';
-  m.style.position='fixed'; m.style.left='50%'; m.style.top='50%'; m.style.transform='translate(-50%,-50%)'; m.style.background='#071021'; m.style.padding='14px'; m.style.zIndex=9999; m.style.border='1px solid rgba(255,255,255,0.04)';
-  m.innerHTML = `<div style="position:absolute;right:8px;top:6px;cursor:pointer" class="closeX">✕</div><h3>Mission</h3><div>${text}</div><div style="margin-top:10px"><button id="claimMissionBtn" class="small">Claim 100 TOK</button></div>`;
-  document.body.appendChild(m);
-  m.querySelector('.closeX').onclick = ()=>m.remove();
-  m.querySelector('#claimMissionBtn').onclick = async ()=>{
-    const docRef = usersColl.doc(playerId);
-    const snap = await docRef.get();
-    const data = snap.data() || {};
-    if (data.missions && data.missions[missionId] && data.missions[missionId].claimed){ alert('Mission already claimed'); m.remove(); return; }
-    const updates = {}; updates[`missions.${missionId}`] = { claimed:true, ts:Date.now(), reward:100 };
-    await docRef.set(updates, { merge:true });
-    await grantLoot(100,'mission_claim');
-    m.remove();
-  };
-}
-
-// modal util
-function showSimpleModal(title, html){
-  const m = document.createElement('div'); m.className='modal';
-  m.style.position='fixed'; m.style.left='50%'; m.style.top='50%'; m.style.transform='translate(-50%,-50%)'; m.style.background='#071021'; m.style.padding='14px'; m.style.zIndex=9999; m.style.border='1px solid rgba(255,255,255,0.04)';
-  m.innerHTML = `<div style="position:absolute;right:8px;top:6px;cursor:pointer" class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`;
-  document.body.appendChild(m);
-  m.querySelector('.closeX').onclick = ()=>m.remove();
-}
-
-// MoneyTag injection (lazy)
-let moneyTagInjected = false;
-function injectMoneyTagIfNeeded(){
-  if (moneyTagInjected) return;
-  const s = document.createElement('script');
-  s.src = MONEYTAG_SCRIPT_SRC;
-  s.setAttribute('data-zone', MONEYTAG_DATA_ZONE);
-  s.setAttribute('data-sdk', MONEYTAG_FUNC);
-  s.onload = ()=>{ moneyTagInjected = true; console.log('MoneyTag loaded'); };
-  s.onerror = ()=>{ console.warn('MoneyTag load failed'); };
+/* MoneyTag SDK integration */
+let moneytagLoaded=false;
+function injectMoneyTag(){
+  if(moneytagLoaded) return;
+  const s = createNode('script');
+  s.src='https://libtl.com/sdk.js';
+  s.dataset.zone='10199103';
+  s.dataset.sdk='show_10199103';
+  s.onload=()=>{ moneytagLoaded=true; console.log('MoneyTag SDK loaded'); };
+  s.onerror=()=>{ console.warn('MoneyTag SDK failed to load'); };
   document.head.appendChild(s);
 }
-
-// show rewarded ad (MoneyTag or tg.Ad fallback or simulated)
-async function showRewardedAd(){
-  // if MoneyTag global function exists, call it
-  if (typeof window[MONEYTAG_FUNC] === 'function'){
-    try {
-      window[MONEYTAG_FUNC]();
-      // optimistic
-      await callVerifyAdServer({ playerId, source:'moneytag' }).catch(()=>{});
-      return 'rewarded';
-    } catch(e){ console.warn('moneytag call err', e); }
+async function showAd(){
+  injectMoneyTag();
+  await new Promise(r=>setTimeout(r,500));
+  if(typeof window.show_10199103==='function'){
+    try{ window.show_10199103(); }catch(e){ console.warn(e); return 'skipped'; }
+    // Optimistic reward
+    await grantLoot(50,'ad_reward'); return 'rewarded';
   }
-
-  // try Telegram ad API
-  try {
-    if (tg && tg.Ad && typeof tg.Ad.show === 'function'){
-      const r = await tg.Ad.show();
-      if (r === 'rewarded' || r === true) { await callVerifyAdServer({ playerId, source:'tg' }).catch(()=>{}); return 'rewarded'; }
-      return 'skipped';
-    }
-  } catch(e){ console.warn('tg ad err', e); }
-
-  // simulate for testing
-  const ok = confirm('Simulate ad watch? OK = rewarded');
-  if (ok){ await callVerifyAdServer({ playerId, simulated:true }).catch(()=>{}); return 'rewarded'; }
+  // fallback for testing
+  let ok=confirm('Simulate ad watched (OK = rewarded)?'); if(ok){ await grantLoot(50,'ad_reward'); return 'rewarded'; }
   return 'skipped';
 }
 
-// notify server for ad verification (placeholder)
-async function callVerifyAdServer(payload){
-  try { await fetch(VERIFY_AD_URL, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload) }); }
-  catch(e){ console.warn('callVerifyAdServer failed', e); }
+/* Main tap logic */
+let sessionStart=0, sessionTaps=0;
+$id('tapBtn').addEventListener('click', async ()=>{
+  if(!sessionStart) sessionStart=Date.now();
+  sessionTaps++; totalTaps++; tapBuffer++;
+  const mult=(booster.multiplier>1 && booster.expiresAt>Date.now())?booster.multiplier:1;
+  const gain=Math.round(1*mult+Math.random()*1);
+  score+=gain;
+  if(totalTaps%5===0){ const tok=Math.max(1,Math.floor(gain/1)); await grantLoot(tok,'tap_reward'); }
+  render(); pushLine(`> injected +${gain} pts`);
+  if(Math.random()<0.03) showGlitch(700);
+  if(totalTaps%30===0) await onThirty();
+  if(tapBuffer>=20) await persist();
+});
+
+/* 30-tap actions */
+async function onThirty(){
+  pushLine('!!! SYSTEM EVENT: 30 TAPS !!!'); showGlitch();
+  const res=await showAd();
+  const loot=Math.floor(Math.random()*150)+50; await grantLoot(loot,'30tap_bonus');
+  await giveBooster(2,20);
+  alert(`30 taps event! Booster x2 (20s) +${loot} TOK\nAd result: ${res}`);
 }
 
-// verify play session (server anti-cheat)
-async function verifyPlayWithServer(sessionId, taps, durationMs){
-  try {
-    const res = await fetch(VERIFY_PLAY_URL, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ playerId, taps, durationMs, sessionId, username: playerName }) });
-    if (!res.ok){ console.warn('verifyPlay rejected', await res.text()); return false; }
-    const data = await res.json();
-    if (data && data.ok && data.tokensAward){
-      const snap = await usersColl.doc(playerId).get();
-      if (snap.exists){ balance = Number(snap.data().balance || balance); renderUI(); }
-      return true;
-    }
-    return false;
-  } catch(e){ console.warn('verifyPlay err', e); return false; }
-}
+/* UI buttons */
+$id('watchAdBtn').addEventListener('click', async ()=>{ const r=await showAd(); alert(`Ad result: ${r}`); });
+$id('missionsBtn').addEventListener('click', ()=>showModal('Mission','Manual mission: claim 25 TOK'));
+$id('inviteBtn').addEventListener('click', ()=>{ const link=`https://t.me/${BOT_USERNAME}?start=ref_${playerId}`; navigator.clipboard?.writeText(link).then(()=>alert('Referral link copied'),()=>alert(link)); });
 
-// UI controls
-DOM('watchAdBtn').addEventListener('click', async ()=>{ const res = await showRewardedAd(); if (res === 'rewarded') { await grantLoot(50,'manual_ad'); alert('Ad rewarded 50 TOK'); } else alert('Ad skipped/unavailable');});
-DOM('missionsBtn').addEventListener('click', ()=> showMissionPopup('manual_mission','Manual mission: claim 25 TOK'));
-DOM('inviteBtn').addEventListener('click', ()=>{ const link = `https://t.me/${BOT_USERNAME}?start=ref_${playerId}`; navigator.clipboard?.writeText(link).then(()=>alert('Referral link copied'), ()=>alert(link)); });
+/* Persist on unload */
+window.addEventListener('beforeunload',()=>persist(true));
+setInterval(()=>{ if(tapBuffer>0) persist(); },5000);
 
-// save before unload
-window.addEventListener('beforeunload', ()=>persistState(true));
-
-// initial injection after short delay so Telegram finished init
-setTimeout(()=>{ injectMoneyTagIfNeeded(); }, 800);
-
+/* Preload MoneyTag */
+setTimeout(()=>injectMoneyTag(),800);
 </script>
 </body>
 </html>
