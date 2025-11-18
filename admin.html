@@ -1,203 +1,104 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Admin Panel - Hacker Tapper</title>
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #0a0a0a;
-    color: #00eaff;
-    padding: 20px;
-}
-.container {
-    max-width: 800px;
-    margin: auto;
-}
-input, button {
-    padding: 10px;
-    margin: 5px 0;
-    width: 100%;
-    font-size: 15px;
-    border-radius: 6px;
-}
-button {
-    background: #00eaff;
-    color: #000;
-    cursor: pointer;
-    font-weight: bold;
-}
-.user-box {
-    background: #111;
-    padding: 15px;
-    margin-top: 10px;
-    border: 1px solid #00eaff;
-    border-radius: 6px;
-}
-</style>
+  <title>Admin Panel</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    button { padding: 10px 16px; margin: 10px 0; cursor: pointer; }
+    #output { white-space: pre; background:#eee; padding:15px; margin-top:10px; border-radius:5px; }
+    #panel { display:none; }
+  </style>
 </head>
-
 <body>
-<div class="container">
 
-<h2>Admin Login</h2>
+<h2>Admin Panel</h2>
 
-<div id="loginBox">
-    <input id="adminPass" type="password" placeholder="Enter Admin Password">
-    <button onclick="adminLogin()">Login</button>
+<input id="adminPass" type="password" placeholder="Enter admin password" style="padding:10px;">
+<button onclick="login()">Login</button>
+
+<div id="panel">
+  <button onclick="loadUsers()">Load All Users</button>
+  <button onclick="addCoins()">Add Coins</button>
+
+  <div id="output">Waiting...</div>
 </div>
 
-<div id="adminPanel" style="display:none;">
-
-    <h2>🔧 Admin Panel</h2>
-
-    <button onclick="loadUsers()">Load All Users</button>
-
-    <input id="searchId" placeholder="Search by User ID (5516578535)">
-    <button onclick="searchUser()">Search</button>
-
-    <div id="usersList"></div>
-</div>
-
-</div>
-
-<!-- Firebase SDK v8 (Telegram Compatible) -->
+<!-- Firebase v8 (Only version that works everywhere) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <script>
-// YOUR FIREBASE CONFIG
+// ==============================
+// FIREBASE CONFIG
+// ==============================
 const firebaseConfig = {
-    apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
-    authDomain: "comhashgame.firebaseapp.com",
-    databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
-    projectId: "comhashgame",
-    storageBucket: "comhashgame.firebasestorage.app",
-    messagingSenderId: "392187080052",
-    appId: "1:392187080052:web:3e31391442ca1315dc1021",
-    measurementId: "G-0YWTXYJ7RN"
+  apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
+  authDomain: "comhashgame.firebaseapp.com",
+  databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
+  projectId: "comhashgame",
+  storageBucket: "comhashgame.firebasestorage.app",
+  messagingSenderId: "392187080052",
+  appId: "1:392187080052:web:3e31391442ca1315dc1021",
+  measurementId: "G-0YWTXYJ7RN"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// ==============================
+// ADMIN PASSWORD
+// ==============================
+const ADMIN_PASSWORD = "superadmin123"; // change this
 
-// SIMPLE HARD-CODED PASSWORD (CHANGE IT!!)
-const ADMIN_PASSWORD = "arshadirfan123";
-
-function adminLogin() {
-    const pass = document.getElementById("adminPass").value.trim();
-
-    if (pass !== ADMIN_PASSWORD) {
-        alert("Wrong password!");
-        return;
-    }
-
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("adminPanel").style.display = "block";
+// ==============================
+// LOGIN
+// ==============================
+function login() {
+  const pass = document.getElementById("adminPass").value;
+  if (pass !== ADMIN_PASSWORD) return alert("Wrong password");
+  document.getElementById("panel").style.display = "block";
 }
 
-
-
+// ==============================
 // LOAD ALL USERS
+// ==============================
 function loadUsers() {
-    const list = document.getElementById("usersList");
-    list.innerHTML = "Loading...";
+  document.getElementById("output").textContent = "Loading...";
 
-    db.ref("users").once("value", snap => {
-        const data = snap.val();
-        if (!data) {
-            list.innerHTML = "No users found.";
-            return;
-        }
-
-        list.innerHTML = "";
-
-        Object.keys(data).forEach(id => {
-            const u = data[id];
-            list.innerHTML += renderUserBox(id, u);
-        });
+  db.ref("users").once("value")
+    .then(snapshot => {
+      document.getElementById("output").textContent =
+        JSON.stringify(snapshot.val(), null, 2);
+    })
+    .catch(err => {
+      document.getElementById("output").textContent = "Error: " + err.message;
     });
 }
 
+// ==============================
+// ADD COINS
+// ==============================
+function addCoins() {
+  const uid = prompt("Enter Telegram User ID:");
+  const amount = Number(prompt("Enter coins to add:"));
 
+  if (!uid || !amount) {
+    alert("Both fields required");
+    return;
+  }
 
-// SEARCH USER BY ID
-function searchUser() {
-    const id = document.getElementById("searchId").value.trim();
-    if (id.length === 0) return;
+  const ref = db.ref("users/" + uid + "/coins");
 
-    const list = document.getElementById("usersList");
-    list.innerHTML = "Searching...";
+  ref.once("value").then(snap => {
+    const current = snap.val() || 0;
+    const newBalance = current + amount;
 
-    db.ref("users/" + id).once("value", snap => {
-        if (!snap.exists()) {
-            list.innerHTML = "User not found.";
-            return;
-        }
-        list.innerHTML = renderUserBox(id, snap.val());
-    });
-}
+    ref.set(newBalance);
 
-
-
-// RENDER USER BOX HTML
-function renderUserBox(id, u) {
-    return `
-    <div class="user-box">
-        <b>ID:</b> ${id}<br>
-        <b>Username:</b> ${u.username || "-"}<br>
-        <b>Coins:</b> ${u.coins}<br>
-        <b>Score:</b> ${u.score}<br>
-        <b>Taps:</b> ${u.taps}<br>
-        <b>Booster:</b> ${u.booster}<br>
-        <b>Referred By:</b> ${u.referredBy || "-"}<br><br>
-
-        <input id="coins_${id}" type="number" placeholder="Set Coins" value="${u.coins}">
-        <button onclick="updateCoins('${id}')">Update Coins</button>
-
-        <input id="score_${id}" type="number" placeholder="Set Score" value="${u.score}">
-        <button onclick="updateScore('${id}')">Update Score</button>
-
-        <button onclick="resetTaps('${id}')">Reset Taps</button>
-        <button style="background:red;color:white;" onclick="deleteUser('${id}')">Delete User</button>
-    </div>
-    `;
-}
-
-
-
-// UPDATE COINS
-function updateCoins(id) {
-    const val = parseInt(document.getElementById("coins_" + id).value);
-    db.ref("users/" + id).update({ coins: val });
-    alert("Coins updated");
-}
-
-
-
-// UPDATE SCORE
-function updateScore(id) {
-    const val = parseInt(document.getElementById("score_" + id).value);
-    db.ref("users/" + id).update({ score: val });
-    alert("Score updated");
-}
-
-
-
-// RESET TAPS
-function resetTaps(id) {
-    db.ref("users/" + id).update({ taps: 0 });
-    alert("Taps reset");
-}
-
-
-
-// DELETE USER
-function deleteUser(id) {
-    if (!confirm("Delete this user?")) return;
-    db.ref("users/" + id).remove();
-    alert("User deleted");
+    document.getElementById("output").textContent =
+      "Added " + amount + " coins to " + uid +
+      "\nNew Balance: " + newBalance;
+  });
 }
 </script>
 
