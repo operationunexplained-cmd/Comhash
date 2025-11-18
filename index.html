@@ -13,42 +13,42 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
 
 <style>
-  body{margin:0;font-family:sans-serif;background:#020610;color:#d8f6f0;}
-  .wrap{max-width:720px;margin:0 auto;padding:12px;}
-  header{display:flex;justify-content:space-between;align-items:center;}
-  button{padding:12px;margin:4px;border:none;border-radius:6px;background:#00e5a8;color:#000;font-weight:bold;cursor:pointer;}
-  #hackAnim{height:120px;background:#00121a;color:#7ef2d7;padding:6px;font-family:monospace;overflow:hidden;}
-  ol{padding-left:18px;}
-  .muted{color:#93b6c6;font-size:13px;}
-  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;width:320px;}
-  .closeX{position:absolute;right:6px;top:6px;cursor:pointer;color:#93b6c6;}
+body{margin:0;font-family:sans-serif;background:#020610;color:#d8f6f0;}
+.wrap{max-width:720px;margin:0 auto;padding:12px;}
+header{display:flex;justify-content:space-between;align-items:center;}
+button{padding:12px;margin:4px;border:none;border-radius:6px;background:#00e5a8;color:#000;font-weight:bold;cursor:pointer;}
+#hackAnim{height:120px;background:#00121a;color:#7ef2d7;padding:6px;font-family:monospace;overflow:hidden;}
+ol{padding-left:18px;}
+.muted{color:#93b6c6;font-size:13px;}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;width:320px;}
+.closeX{position:absolute;right:6px;top:6px;cursor:pointer;color:#93b6c6;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>💻 Hacker Tapper</h1>
-    <div id="playerTag" class="muted">Loading...</div>
-  </header>
+<header>
+<h1>💻 Hacker Tapper</h1>
+<div id="playerTag" class="muted">Loading...</div>
+</header>
 
-  <div>
-    <div>Balance: <span id="balance">0</span> TOK</div>
-    <div>Score: <span id="score">0</span></div>
-    <div>Taps: <span id="taps">0</span></div>
-  </div>
+<div>
+<div>Balance: <span id="balance">0</span> TOK</div>
+<div>Score: <span id="score">0</span></div>
+<div>Taps: <span id="taps">0</span></div>
+</div>
 
-  <div id="hackAnim"></div>
-  <button id="tapBtn">TAP TO INJECT</button>
-  <div>
-    <button id="watchAdBtn">Watch Ad (reward)</button>
-    <button id="missionsBtn">Missions</button>
-    <button id="inviteBtn">Invite</button>
-  </div>
+<div id="hackAnim"></div>
+<button id="tapBtn">TAP TO INJECT</button>
+<div>
+<button id="watchAdBtn">Watch Ad (reward)</button>
+<button id="missionsBtn">Missions</button>
+<button id="inviteBtn">Invite</button>
+</div>
 
-  <h3>Leaderboard</h3>
-  <ol id="leaderboard"></ol>
+<h3>Leaderboard</h3>
+<ol id="leaderboard"></ol>
 
-  <div id="modalRoot"></div>
+<div id="modalRoot"></div>
 </div>
 
 <script>
@@ -62,6 +62,9 @@ const firebaseConfig = {
   messagingSenderId: "392187080052",
   appId: "1:392187080052:web:3e31391442ca1315dc1021"
 };
+const VERIFY_AD_URL = 'https://your-server.example.com/verifyAdReward';
+const VERIFY_PLAY_URL = 'https://your-server.example.com/verifyPlay';
+const MONEYTAG_ZONE_SCRIPT = { src: 'https://libtl.com/sdk.js', dataset:{zone:'10199103',sdk:'show_10199103'}, funcName:'show_10199103' };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
@@ -73,8 +76,8 @@ const playerName = tgUser?.first_name || 'Guest';
 document.getElementById('playerTag').textContent = `${playerName} • ${playerId}`;
 
 /* state */
-let balance = 0, score = 0, totalTaps = 0;
-let recentLoot = [];
+let balance=0, score=0, totalTaps=0;
+let recentLoot=[];
 const hackAnimEl = document.getElementById('hackAnim');
 
 /* UI render */
@@ -85,33 +88,32 @@ function render(){
 }
 render();
 
-/* Helpers */
 function pushLine(text){
-  const el = document.createElement('div'); el.textContent = text;
+  const el=document.createElement('div'); el.textContent=text;
   hackAnimEl.appendChild(el);
   if(hackAnimEl.children.length>6) hackAnimEl.removeChild(hackAnimEl.firstChild);
 }
 
-function showModal(title, text){
-  const m = document.createElement('div'); m.className='modal';
-  m.innerHTML = `<div class="closeX">✕</div><h3>${title}</h3><div>${text}</div>`;
+function showModal(title,text){
+  const m=document.createElement('div'); m.className='modal';
+  m.innerHTML=`<div class="closeX">✕</div><h3>${title}</h3><div>${text}</div>`;
   document.getElementById('modalRoot').appendChild(m);
-  m.querySelector('.closeX').onclick = ()=>m.remove();
+  m.querySelector('.closeX').onclick=()=>m.remove();
   return m;
 }
 
 /* Firebase user */
 function ensureUser(){
-  const ref = db.ref('users/' + playerId);
+  const ref=db.ref('users/' + playerId);
   ref.once('value').then(snapshot=>{
     if(snapshot.exists()){
-      const data = snapshot.val();
-      balance = Number(data.balance || 0);
-      score = Number(data.score || 0);
-      totalTaps = Number(data.totalTaps || 0);
+      const data=snapshot.val();
+      balance=Number(data.balance||0);
+      score=Number(data.score||0);
+      totalTaps=Number(data.totalTaps||0);
       render();
     } else {
-      ref.set({playerId, username:playerName, balance:0, score:0, totalTaps:0, createdAt:Date.now()});
+      ref.set({playerId,username:playerName,balance:0,score:0,totalTaps:0,createdAt:Date.now()});
     }
   });
 }
@@ -119,80 +121,114 @@ ensureUser();
 
 /* Persist state */
 function persist(){
-  db.ref('users/' + playerId).update({balance, score, totalTaps});
+  db.ref('users/' + playerId).update({balance,score,totalTaps});
 }
 
 /* Tap logic */
-let tapBuffer = 0;
-document.getElementById('tapBtn').addEventListener('click', ()=>{
+let tapBuffer=0;
+document.getElementById('tapBtn').addEventListener('click',()=>{
   totalTaps++;
   tapBuffer++;
-  const gain = Math.floor(Math.random()*2)+1;
-  score += gain;
+  const gain=Math.floor(Math.random()*2)+1;
+  score+=gain;
   if(totalTaps%5===0){
-    const tok = Math.floor(Math.random()*3)+1;
-    balance += tok;
-    recentLoot.push({amount:tok, reason:'tap_reward', ts:Date.now()});
+    const tok=Math.floor(Math.random()*3)+1;
+    balance+=tok;
+    recentLoot.push({amount:tok,reason:'tap_reward',ts:Date.now()});
   }
   pushLine(`> injected +${gain} pts`);
   if(totalTaps%30===0) onThirty();
   render();
-  if(tapBuffer>=20){ tapBuffer=0; persist(); }
+  if(tapBuffer>=20){tapBuffer=0;persist();}
 });
 
-/* 30 taps event */
-function onThirty(){
+/* 30 taps event with MoneyTag ad */
+async function onThirty(){
   pushLine('!!! SYSTEM EVENT: 30 TAPS !!!');
-  showModal('Mission','30 taps achieved! +Random loot');
-  const loot = Math.floor(Math.random()*100)+50;
-  balance += loot;
+  showModal('Event','30 taps achieved! Checking ad reward...');
+  const adResult = await showAdFlow();
+  let loot=0;
+  if(adResult==='rewarded'){
+    loot=Math.floor(Math.random()*150)+50;
+    balance+=loot;
+    showModal('Reward',`Ad rewarded! +${loot} TOK`);
+  } else {
+    loot=20;
+    balance+=loot;
+    showModal('Notice',`No ad reward. +${loot} TOK granted`);
+  }
   render();
   persist();
 }
 
-/* Ad flow (simulated) */
-document.getElementById('watchAdBtn').addEventListener('click', ()=>{
-  const ok = confirm('Simulate ad watched?');
-  if(ok){
-    const reward = Math.floor(Math.random()*50)+20;
-    balance += reward; render(); persist();
+/* Ad flow */
+let moneytagLoaded=false;
+function injectMoneyTag(){
+  if(moneytagLoaded)return;
+  const s=document.createElement('script');
+  s.src=MONEYTAG_ZONE_SCRIPT.src;
+  s.dataset.zone=MONEYTAG_ZONE_SCRIPT.dataset.zone;
+  s.dataset.sdk=MONEYTAG_ZONE_SCRIPT.dataset.sdk;
+  s.onload=()=>{moneytagLoaded=true; console.log('MoneyTag SDK loaded');};
+  document.head.appendChild(s);
+}
+async function showAdFlow(){
+  injectMoneyTag();
+  await new Promise(r=>setTimeout(r,500));
+  try{
+    if(typeof window.show_10199103==='function'){
+      window.show_10199103();
+      await callVerifyAdServer({playerId});
+      return 'rewarded';
+    }
+  }catch(e){console.warn(e);}
+  const ok=confirm('Simulate ad watched?');
+  if(ok){await callVerifyAdServer({playerId,simulated:true}); return 'rewarded';}
+  return 'skipped';
+}
+
+/* server verification */
+async function callVerifyAdServer(payload){
+  try{await fetch(VERIFY_AD_URL,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});}catch(e){console.warn(e);}
+}
+
+/* Manual buttons */
+document.getElementById('watchAdBtn').addEventListener('click',async ()=>{
+  const r=await showAdFlow();
+  if(r==='rewarded'){
+    const reward=Math.floor(Math.random()*50)+20;
+    balance+=reward; render(); persist();
     alert(`Ad rewarded ${reward} TOK`);
-  }
+  } else alert('Ad skipped/unavailable');
 });
 
-/* Missions (simulated) */
-document.getElementById('missionsBtn').addEventListener('click', ()=>{
-  const reward = 25;
-  balance += reward; render(); persist();
+document.getElementById('missionsBtn').addEventListener('click',()=>{
+  const reward=25; balance+=reward; render(); persist();
   showModal('Mission','Manual mission claimed: +25 TOK');
 });
 
-/* Invite */
-document.getElementById('inviteBtn').addEventListener('click', ()=>{
-  const link = `https://t.me/comhash_bot?start=ref_${playerId}`;
+document.getElementById('inviteBtn').addEventListener('click',()=>{
+  const link=`https://t.me/comhash_bot?start=ref_${playerId}`;
   navigator.clipboard?.writeText(link).then(()=>alert('Referral link copied'));
 });
 
 /* Leaderboard */
 function refreshLeaderboard(){
   db.ref('users').orderByChild('balance').limitToLast(16).once('value',snap=>{
-    const lb = [];
+    const lb=[];
     snap.forEach(s=>lb.push(s.val()));
     lb.reverse();
-    const lbEl = document.getElementById('leaderboard');
-    lbEl.innerHTML = '';
-    lb.forEach(u=>{
-      const li = document.createElement('li');
-      li.textContent = `${u.username || u.playerId} — ${u.balance}`;
-      lbEl.appendChild(li);
-    });
+    const lbEl=document.getElementById('leaderboard');
+    lbEl.innerHTML='';
+    lb.forEach(u=>{const li=document.createElement('li'); li.textContent=`${u.username||u.playerId} — ${u.balance}`; lbEl.appendChild(li);});
   });
 }
 refreshLeaderboard();
 setInterval(refreshLeaderboard,15000);
-
-/* persist periodically */
 setInterval(persist,10000);
+
+/* Inject MoneyTag early */
+setTimeout(()=>injectMoneyTag(),800);
 
 </script>
 </body>
