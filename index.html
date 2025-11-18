@@ -95,13 +95,15 @@
 
 <script>
 /* ---------- CONFIG - REPLACE THESE ---------- */
-const FIREBASE_CONFIG = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-  projectId: "YOUR_FIREBASE_PROJECT_ID",
-  storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-  appId: "YOUR_FIREBASE_APP_ID"
+const firebaseConfig = {
+  apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
+  authDomain: "comhashgame.firebaseapp.com",
+  databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
+  projectId: "comhashgame",
+  storageBucket: "comhashgame.firebasestorage.app",
+  messagingSenderId: "392187080052",
+  appId: "1:392187080052:web:3e31391442ca1315dc1021",
+  measurementId: "G-0YWTXYJ7RN"
 };
 const VERIFY_PLAY_URL = 'https://us-central1-YOUR_PROJECT.cloudfunctions.net/verifyPlay'; // server verify (Cloud Function)
 const VERIFY_AD_URL = 'https://your-server.example.com/verifyAdReward'; // server endpoint to verify ad receipts
