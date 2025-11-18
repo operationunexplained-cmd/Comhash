@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hacker Tapper — Admin</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"></script>
+
+<style>
+  body{font-family:Arial;background:#0c0f17;color:#e6f5ff;margin:0;padding:20px}
+  h1{margin-top:0}
+  .box{background:#121826;padding:15px;border-radius:8px;margin-bottom:20px;border:1px solid #1f2736}
+  input,button,select{padding:8px;border-radius:6px;border:1px solid #1f2736;background:#101623;color:#e6f5ff}
+  button{cursor:pointer;background:#00e5a8;border:none;font-weight:bold}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{padding:8px;border-bottom:1px solid #1f2736}
+</style>
+</head>
+<body>
+
+<h1>Hacker Tapper — Admin Panel</h1>
+
+<div id="loginBox" class="box">
+  <h3>Admin Login</h3>
+  <input id="adminPass" type="password" placeholder="Enter Admin Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="adminUI" style="display:none">
+
+  <!-- Search Users -->
+  <div class="box">
+    <h3>Search User</h3>
+    <input id="searchId" placeholder="Player ID">
+    <button onclick="searchUser()">Search</button>
+
+    <div id="userDetails" style="margin-top:10px"></div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="box">
+    <h3>Leaderboard</h3>
+    <button onclick="loadLeaderboard()">Refresh</button>
+    <table id="lbTable"></table>
+  </div>
+
+  <!-- Loot Logs -->
+  <div class="box">
+    <h3>Loot History (Recent 30)</h3>
+    <button onclick="loadLoot()">Load Logs</button>
+    <table id="lootTable"></table>
+  </div>
+
+</div>
+
+<script>
+/* ------------------ CONFIG ------------------ */
+const ADMIN_PASSWORD = "CHANGE_THIS";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
+  authDomain: "comhashgame.firebaseapp.com",
+  projectId: "comhashgame",
+};
+/* -------------------------------------------- */
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function login(){
+  const v = document.getElementById("adminPass").value;
+  if(v === ADMIN_PASSWORD){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("adminUI").style.display="block";
+  } else {
+    alert("Wrong password.");
+  }
+}
+
+/* SEARCH USER */
+async function searchUser(){
+  const pid = searchId.value.trim();
+  if(!pid) return;
+
+  let d = await db.collection("users").doc(pid).get();
+  if(!d.exists){ userDetails.innerHTML = "User not found."; return; }
+
+  let u = d.data();
+
+  userDetails.innerHTML = `
+    <div class="box">
+      <strong>ID:</strong> ${u.playerId}<br>
+      <strong>Name:</strong> ${u.username}<br>
+      <strong>Balance:</strong> ${u.balance}<br>
+      <strong>Score:</strong> ${u.score}<br>
+      <strong>Taps:</strong> ${u.totalTaps}<br><br>
+
+      <h4>Edit Balance</h4>
+      <input id="newBal" placeholder="New Balance">
+      <button onclick="updateBalance('${u.playerId}')">Save</button>
+
+      <h4 style="margin-top:20px">Give Booster</h4>
+      <select id="boostMult">
+        <option value="2">x2</option>
+        <option value="3">x3</option>
+      </select>
+      <input id="boostSec" placeholder="Seconds" value="30">
+      <button onclick="giveBooster('${u.playerId}')">Give</button>
+
+      <h4 style="margin-top:20px">Reset Missions</h4>
+      <button onclick="resetMissions('${u.playerId}')">Reset</button>
+    </div>`;
+}
+
+/* UPDATE BALANCE */
+async function updateBalance(pid){
+  const val = Number(document.getElementById("newBal").value);
+  if(isNaN(val)) return alert("Invalid balance");
+
+  await db.collection("users").doc(pid).update({ balance: val });
+  alert("Updated");
+}
+
+/* GIVE BOOSTER */
+async function giveBooster(pid){
+  const m = Number(document.getElementById("boostMult").value);
+  const s = Number(document.getElementById("boostSec").value);
+
+  await db.collection("users").doc(pid).update({
+    booster: { multiplier:m, expiresAt: Date.now() + s*1000 }
+  });
+
+  alert("Booster given");
+}
+
+/* RESET MISSIONS */
+async function resetMissions(pid){
+  await db.collection("users").doc(pid).update({ missions:{} });
+  alert("Missions reset");
+}
+
+/* LEADERBOARD */
+async function loadLeaderboard(){
+  const snap = await db.collection("leaderboard").orderBy("balance","desc").limit(20).get();
+  let html = `<tr><th>User</th><th>Balance</th></tr>`;
+  snap.forEach(d=>{
+    const u = d.data();
+    html += `<tr><td>${u.username}</td><td>${u.balance}</td></tr>`;
+  });
+  lbTable.innerHTML = html;
+}
+
+/* LOOT LOGS */
+async function loadLoot(){
+  const snap = await db.collection("lootHistory").orderBy("ts","desc").limit(30).get();
+  let html = `<tr><th>User</th><th>Amount</th><th>Reason</th><th>Time</th></tr>`;
+  snap.forEach(d=>{
+    const x = d.data();
+    html += `<tr>
+      <td>${x.playerId}</td>
+      <td>${x.amount}</td>
+      <td>${x.reason}</td>
+      <td>${new Date(x.ts).toLocaleString()}</td>
+    </tr>`;
+  });
+  lootTable.innerHTML = html;
+}
+
+</script>
+</body>
+</html>
