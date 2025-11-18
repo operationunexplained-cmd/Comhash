@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ComHash — Neon Admin</title><!-- Firebase --><script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script><!-- Chart.js --><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><style>
+<title>ComHash — Neon Admin (Secure)</title><!-- Firebase (compat) --><script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script><!-- Chart.js --><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><style>
   /* Base */
   :root{--bg1:#070317;--bg2:#0b0b1a;--card:#0f1220;--glass:rgba(255,255,255,0.04);--muted:#9fb6c6;--neon:#00ff88;--accent:#6b21ff}
   html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#e6fff7}
@@ -20,43 +20,36 @@
   .card{grid-column:span 12;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 8px 30px rgba(0,0,0,0.5)}
   @media(min-width:880px){.card.col-4{grid-column:span 4}.card.col-3{grid-column:span 3}.card.col-6{grid-column:span 6}.card.col-8{grid-column:span 8}.card.col-9{grid-column:span 9}}
 
-  /* neon stat */
   .stat{background:linear-gradient(90deg,rgba(255,255,255,0.02),transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px}
   .stat .val{font-size:20px;font-weight:800;color:var(--neon);text-shadow:0 2px 18px rgba(0,255,136,0.12)}
 
-  /* controls */
   .controls{display:flex;gap:8px;align-items:center}
   input,select,textarea{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:8px;color:inherit}
   .btn{padding:10px 12px;border-radius:10px;border:0;cursor:pointer;background:linear-gradient(90deg,var(--neon),#77ffd0);color:#012;font-weight:700;box-shadow:0 8px 24px rgba(0,255,136,0.08)}
   .btn.alt{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
   .danger{background:#ff6b6b;color:#111}
 
-  /* table */
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left;font-size:14px}
   th{color:var(--muted);font-weight:700}
 
-  /* sidebar-less responsive layout - tabs */
   .tabs{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
   .tab{padding:8px 12px;border-radius:999px;background:transparent;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
   .tab.active{background:linear-gradient(90deg,var(--accent),#00ffd1);color:#021;box-shadow:0 8px 26px rgba(107,33,255,0.12)}
 
-  /* modal */
   .modal-back{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(0deg,rgba(0,0,0,0.6),rgba(0,0,0,0.6));z-index:9999}
   .modal{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:18px;border-radius:12px;min-width:320px;border:1px solid rgba(255,255,255,0.04)}
 
-  /* footer */
   footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-
-  /* small UI niceties */
   .chip{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-weight:700;color:var(--muted)}
   .searchRow{display:flex;gap:8px;align-items:center}
-
-  /* neon borders for important elements */
   .neon-border{box-shadow:0 0 36px rgba(0,255,136,0.06),inset 0 0 1px rgba(0,255,136,0.06)}
-
-  /* responsive tweaks */
   @media(max-width:680px){.grid{grid-template-columns:repeat(6,1fr)}.card.col-4{grid-column:span 6}.card.col-3{grid-column:span 6}}
+
+  /* login modal styles */
+  #loginModal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);z-index:99999}
+  #loginBox{background:#071021;padding:18px;border-radius:12px;width:360px;border:1px solid rgba(255,255,255,0.04)}
+  #loginBox input{width:100%;margin:8px 0}
 </style></head>
 <body>
 <div class="app">
@@ -64,16 +57,16 @@
     <div class="brand">
       <div class="logo">C</div>
       <div>
-        <h1>ComHash — Neon Admin</h1>
-        <div class="muted">Gaming UI • Neon Green accent • Full Realtime DB</div>
+        <h1>ComHash — Neon Admin (Secure)</h1>
+        <div class="muted">Neon Green • Gaming style • Firebase Auth</div>
       </div>
     </div>
     <div class="controls">
-      <div id="adminTag" class="muted">Not logged in</div>
+      <div id="adminTag" class="muted">Not signed in</div>
       <button id="darkToggle" class="btn alt">Toggle Theme</button>
-      <button id="logoutBtn" class="btn alt" style="display:none">Logout</button>
+      <button id="signOutBtn" class="btn alt" style="display:none">Sign out</button>
     </div>
-  </header>  <!-- tabs -->  <div class="tabs" id="tabsContainer">
+  </header>  <div class="tabs" id="tabsContainer">
     <div class="tab active" data-page="dashboard">Dashboard</div>
     <div class="tab" data-page="users">Users</div>
     <div class="tab" data-page="missions">Missions</div>
@@ -81,18 +74,9 @@
     <div class="tab" data-page="loot">Recent Loot</div>
     <div class="tab" data-page="charts">Charts</div>
   </div>  <div class="grid" style="margin-top:14px">
-    <!-- Dashboard stats -->
-    <div class="card col-4" id="dashboardCard">
-      <div class="stat"><div class="muted">Total Users</div><div class="val" id="statUsers">0</div></div>
-    </div>
-    <div class="card col-4">
-      <div class="stat"><div class="muted">Active Today</div><div class="val" id="statActive">0</div></div>
-    </div>
-    <div class="card col-4">
-      <div class="stat"><div class="muted">Total TOK</div><div class="val" id="statBalance">0</div></div>
-    </div><!-- content card full width -->
-<div class="card col-12" id="pageContent">
-  <!-- pages will be injected here -->
+    <div class="card col-4"><div class="stat"><div class="muted">Total Users</div><div class="val" id="statUsers">0</div></div></div>
+    <div class="card col-4"><div class="stat"><div class="muted">Active Today</div><div class="val" id="statActive">0</div></div></div>
+    <div class="card col-4"><div class="stat"><div class="muted">Total TOK</div><div class="val" id="statBalance">0</div></div></div><div class="card col-12" id="pageContent">
   <div id="dashboard" class="pageView">
     <h3>Overview</h3>
     <div class="muted">Realtime snapshot of your game economy and users.</div>
@@ -155,8 +139,17 @@
 </div>
 
   </div>  <footer>ComHash Admin • Neon UI — Replace Firebase config before use</footer>
-</div><!-- modal container --><div id="modalBack" class="modal-back"><div class="modal" id="modalContent"></div></div><script>
-// ===== CONFIG - replace with your Firebase Realtime DB config =====
+</div><!-- modal container --><div id="modalBack" class="modal-back"><div class="modal" id="modalContent"></div></div><!-- Login modal (Firebase Auth) --><div id="loginModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:99999">
+  <div id="loginBox">
+    <h3>Admin Sign In</h3>
+    <div class="muted">Sign in with your admin email</div>
+    <input id="emailInput" placeholder="admin@yourdomain.com" />
+    <input id="passInput" placeholder="password" type="password" />
+    <div style="display:flex;gap:8px;margin-top:8px"><button id="signinBtn" class="btn">Sign In</button><button id="closeLogin" class="btn alt">Cancel</button></div>
+    <p class="muted" style="margin-top:8px">Admin emails must be whitelisted in the code.</p>
+  </div>
+</div><script>
+// ===== CONFIG =====
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
   authDomain: "comhashgame.firebaseapp.com",
@@ -166,55 +159,69 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "392187080052",
   appId: "1:392187080052:web:3e31391442ca1315dc1021"
 };
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'Arshad@123';
-// ==================================================================
+// List of admin emails allowed to access admin UI (replace with your admin emails)
+const ADMIN_EMAILS = ['admin@yourdomain.com', 'youremail@example.com'];
+// ==================
+
+// Init Firebase
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.database();
 
 // UI helpers
 const $ = id => document.getElementById(id);
+function showModal(html){ $('modalContent').innerHTML = html; $('modalBack').style.display='flex'; }
+$('modalBack').addEventListener('click', (e)=>{ if(e.target==='modalBack') $('modalBack').style.display='none'; });
 function showToast(msg){ const d = document.createElement('div'); d.textContent = msg; d.style.cssText='position:fixed;right:18px;bottom:18px;background:#021; color:var(--neon);padding:10px;border-radius:8px;box-shadow:0 8px 24px rgba(0,255,136,0.08)'; document.body.appendChild(d); setTimeout(()=>d.remove(),3000); }
 
-// Init firebase
-firebase.initializeApp(FIREBASE_CONFIG);
-const db = firebase.database();
-
-// Page switching
+// Page/tab handling
 const tabs = document.querySelectorAll('.tab');
 const pageViews = document.querySelectorAll('.pageView');
-tabs.forEach(t=> t.addEventListener('click', ()=>{
-  tabs.forEach(x=>x.classList.remove('active'));
-  t.classList.add('active');
-  const page = t.dataset.page;
-  pageViews.forEach(p=>p.classList.add('hidden'));
-  document.getElementById(page).classList.remove('hidden');
-}));
+function showPageByName(name){ tabs.forEach(t=>t.classList.remove('active')); pageViews.forEach(p=>p.classList.add('hidden'));
+  document.querySelector(`.tab[data-page="${name}"]`).classList.add('active'); document.getElementById(name).classList.remove('hidden'); }
 
-// Modal
-const modalBack = $('modalBack'); function showModal(html){ $('modalContent').innerHTML = html; modalBack.style.display='flex'; }
-modalBack.addEventListener('click', (e)=>{ if(e.target===modalBack) modalBack.style.display='none'; });
+tabs.forEach(t=> t.addEventListener('click', ()=> showPageByName(t.dataset.page)));
 
-// Auth (simple client-side)
-let adminLogged = false;
-function attemptAutoLogin(){ // nothing automatic - require manual login to avoid accidental exposure
-}
+// Dark toggle
+$('darkToggle').addEventListener('click', ()=>{ document.body.classList.toggle('light'); });
 
-// show login prompt on first load
-(async function initialLogin(){
-  const user = prompt('Admin username:');
-  const pass = prompt('Admin password:');
-  if(user===ADMIN_USERNAME && pass===ADMIN_PASSWORD){
-    $('adminTag').textContent = 'Admin • ' + ADMIN_USERNAME;
-    $('logoutBtn').style.display = 'inline-block'; adminLogged = true;
+// Sign-in flow UI
+function openLoginModal(){ $('loginModal').style.display='flex'; }
+function closeLoginModal(){ $('loginModal').style.display='none'; }
+$('closeLogin').addEventListener('click', closeLoginModal);
+
+// Show login modal on load
+openLoginModal();
+
+// Firebase Auth: Sign in with email/password
+$('signinBtn').addEventListener('click', async ()=>{
+  const email = $('emailInput').value.trim();
+  const pass = $('passInput').value;
+  if(!email || !pass) return alert('Enter email & password');
+  try{
+    const res = await auth.signInWithEmailAndPassword(email, pass);
+    const user = res.user;
+    if(ADMIN_EMAILS.indexOf(user.email) === -1){
+      await auth.signOut(); alert('This account is not authorized as admin'); return;
+    }
+    // success
+    $('adminTag').textContent = `${user.email}`;
+    $('signOutBtn').style.display = 'inline-block';
+    closeLoginModal();
     attachRealtime();
-  } else {
-    alert('Invalid admin credentials — reload to try again');
-  }
-})();
-$('logoutBtn').addEventListener('click', ()=>{ location.reload(); });
+    showToast('Signed in as ' + user.email);
+  }catch(err){ console.error(err); alert('Sign in failed: '+err.message); }
+});
 
-// ===== Realtime handlers =====
+// Sign out
+$('signOutBtn').addEventListener('click', async ()=>{ await auth.signOut(); location.reload(); });
+
+// ===== Realtime attach (only after auth & admin check) =====
+let chartsInited=false;
 async function attachRealtime(){
-  // stats
+  if(!auth.currentUser) return; // ensure signed in
+
+  // users snapshot
   db.ref('users').on('value', snap=>{
     const val = snap.val()||{}; const list = Object.values(val||{});
     $('statUsers').textContent = list.length;
@@ -226,89 +233,56 @@ async function attachRealtime(){
     renderUsersTable(list);
   });
 
+  // lootHistory
   db.ref('lootHistory').limitToLast(200).on('value', snap=>{
-    const arr = [];
-    snap.forEach(s=>arr.push(s.val()));
-    renderRecentEvents(arr.slice().reverse());
-    renderLoot(arr.slice().reverse());
+    const arr = []; snap.forEach(s=>arr.push(s.val())); renderRecentEvents(arr.slice().reverse()); renderLoot(arr.slice().reverse());
   });
 
-  db.ref('missions').on('value', snap=>{
-    renderMissions(snap.val()||{});
-  });
+  // missions
+  db.ref('missions').on('value', snap=>{ renderMissions(snap.val()||{}); });
 
-  db.ref('ads').on('value', snap=>{
-    const d = snap.val()||{}; $('currentZone').textContent = d.zone || '-';
-    $('moneytagZone').value = d.zone || '';
-  });
+  // ads
+  db.ref('ads').on('value', snap=>{ const d=snap.val()||{}; $('currentZone').textContent = d.zone || '-'; $('moneytagZone').value = d.zone || ''; });
 
-  // charts
-  setupCharts();
+  // analytics / charts
+  if(!chartsInited){ setupCharts(); chartsInited=true; }
 }
 
-// ===== Users table =====
-function renderUsersTable(list){
-  const tbody = $('usersTbody'); tbody.innerHTML = '';
-  list.sort((a,b)=>Number(b.balance||0)-Number(a.balance||0));
-  list.forEach(u=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${u.playerId||''}</td><td>${u.username||''}</td><td>${u.balance||0}</td><td>${u.score||0}</td><td>${u.totalTaps||0}</td><td></td>`;
-    const actions = tr.querySelector('td:last-child');
-    const ban = document.createElement('button'); ban.className='btn alt'; ban.textContent = u.banned? 'Unban':'Ban'; ban.onclick = ()=> toggleBan(u.playerId,u.banned);
-    const edit = document.createElement('button'); edit.className='btn'; edit.style.marginLeft='8px'; edit.textContent='Edit'; edit.onclick = ()=> openEditUser(u);
-    actions.appendChild(ban); actions.appendChild(edit);
-    tbody.appendChild(tr);
-  });
-}
+// ===== Users table & actions =====
+function renderUsersTable(list){ const tbody = $('usersTbody'); tbody.innerHTML=''; list.sort((a,b)=>Number(b.balance||0)-Number(a.balance||0)); list.forEach(u=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${u.playerId||''}</td><td>${u.username||''}</td><td>${u.balance||0}</td><td>${u.score||0}</td><td>${u.totalTaps||0}</td><td></td>`; const actions = tr.querySelector('td:last-child'); const ban = document.createElement('button'); ban.className='btn alt'; ban.textContent = u.banned? 'Unban':'Ban'; ban.onclick = ()=> toggleBan(u.playerId,u.banned); const edit = document.createElement('button'); edit.className='btn'; edit.style.marginLeft='8px'; edit.textContent='Edit'; edit.onclick = ()=> openEditUser(u); actions.appendChild(ban); actions.appendChild(edit); tbody.appendChild(tr); }); }
 
 function toggleBan(id, currently){ if(!confirm(`${currently? 'Unban':'Ban'} ${id}?`)) return; db.ref('users/'+id).update({ banned: !currently, updatedAt: Date.now() }); }
 
-function openEditUser(u){ showModal(`<h3>Edit ${u.playerId}</h3><p>Username: <input id='mUser' value='${u.username||''}'></p><p>Balance: <input id='mBal' value='${u.balance||0}' type='number'></p><p>Score: <input id='mScore' value='${u.score||0}' type='number'></p><div style='display:flex;gap:8px'><button id='saveUser' class='btn'>Save</button><button id='closeM' class='btn alt'>Close</button></div>`);
-  $('closeM').onclick = ()=> modalBack.style.display='none';
-  $('saveUser').onclick = async ()=>{
-    const username = $('mUser').value; const balance = Number($('mBal').value||0); const score = Number($('mScore').value||0);
-    await db.ref('users/'+u.playerId).update({ username, balance, score, updatedAt: Date.now() });
-    modalBack.style.display='none'; showToast('User updated');
-  };
-}
+function openEditUser(u){ showModal(`<h3>Edit ${u.playerId}</h3><p>Username: <input id='mUser' value='${u.username||''}'></p><p>Balance: <input id='mBal' value='${u.balance||0}' type='number'></p><p>Score: <input id='mScore' value='${u.score||0}' type='number'></p><div style='display:flex;gap:8px'><button id='saveUser' class='btn'>Save</button><button id='closeM' class='btn alt'>Close</button></div>`); $('closeM').onclick = ()=> $('modalBack').style.display='none'; $('saveUser').onclick = async ()=>{ const username = $('mUser').value; const balance = Number($('mBal').value||0); const score = Number($('mScore').value||0); await db.ref('users/'+u.playerId).update({ username, balance, score, updatedAt: Date.now() }); $('modalBack').style.display='none'; showToast('User updated'); }; }
 
-// search
+// Search
 $('searchBtn').addEventListener('click', ()=>{ const q = $('userSearch').value.trim(); if(!q) return; db.ref('users').orderByChild('username').equalTo(q).once('value').then(s=>{ if(s.exists()){ renderUsersTable(Object.values(s.val())); } else { db.ref('users/'+q).get().then(r=>{ if(r.exists()) renderUsersTable([r.val()]); else alert('Not found') }); } }); });
 $('loadAllBtn').addEventListener('click', ()=>{ db.ref('users').once('value').then(s=>renderUsersTable(Object.values(s.val()||{}))); });
-$('exportBtn').addEventListener('click', async ()=>{ const snap = await db.ref('users').once('value'); const data = snap.val()||{}; const rows = Object.values(data).map(u=>`${u.playerId},${u.username},${u.balance||0},${u.score||0}`); const csv = 'id,username,balance,score
+$('exportBtn').addEventListener('click', async ()=>{ const snap = await db.ref('users').once('value'); const data = snap.val()||{}; const rows = Object.values(data).map(u=>`${u.playerId || ''},${(u.username||'').replace(/,/g,'')},${u.balance||0},${u.score||0}`); const csv = 'id,username,balance,score
 '+rows.join('
 '); const blob = new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download='users.csv';a.click(); URL.revokeObjectURL(url); });
 
 // ===== Top balances & events =====
-function renderTopBalances(list){ const el = $('topBalances'); el.innerHTML=''; list.sort((a,b)=>Number(b.balance||0)-Number(a.balance||0)).slice(0,5).forEach(u=> el.innerHTML += `<li>${u.username||u.playerId}: ${u.balance||0} TOK</li>`); }
-function renderRecentEvents(arr){ const el = $('recentEvents'); el.innerHTML = ''; arr.slice(0,6).forEach(it=> el.innerHTML += `<div class='muted'>${new Date(it.ts||0).toLocaleString()} — ${it.playerId} +${it.amount} (${it.reason})</div>`); }
+function renderTopBalances(list){ const el=$('topBalances'); el.innerHTML=''; list.sort((a,b)=>Number(b.balance||0)-Number(a.balance||0)).slice(0,5).forEach(u=> el.innerHTML += `<li>${u.username||u.playerId}: ${u.balance||0} TOK</li>`); }
+function renderRecentEvents(arr){ const el=$('recentEvents'); el.innerHTML=''; arr.slice(0,6).forEach(it=> el.innerHTML += `<div class='muted'>${new Date(it.ts||0).toLocaleString()} — ${it.playerId} +${it.amount} (${it.reason})</div>`); }
 
 // ===== Missions =====
 $('addMissionBtn').addEventListener('click', async ()=>{ const t = $('missionTitle').value.trim(); const r = Number($('missionReward').value||0); if(!t) return alert('Title required'); const id = 'm_'+Date.now().toString(36); await db.ref('missions/'+id).set({ id, title:t, reward:r, createdAt: Date.now() }); $('missionTitle').value=''; $('missionReward').value=''; showToast('Mission added'); });
-function renderMissions(obj){ const wrap = $('missionsList'); wrap.innerHTML=''; Object.values(obj||{}).forEach(m=>{ const d = document.createElement('div'); d.className='card'; d.innerHTML = `<div style='display:flex;justify-content:space-between;align-items:center'><div><strong>${m.title}</strong><div class='muted'>Reward: ${m.reward} TOK</div></div><div><button class='btn' data-id='${m.id}'>Edit</button> <button class='btn danger' data-del='${m.id}'>Delete</button></div></div>`; wrap.appendChild(d); }); wrap.querySelectorAll('button[data-id]').forEach(b=> b.onclick=()=>{ const id=b.dataset.id; const newT=prompt('New title'); const newR=Number(prompt('New reward','50')||0); if(newT) db.ref('missions/'+id).update({ title:newT, reward:newR }); }); wrap.querySelectorAll('button[data-del]').forEach(b=> b.onclick=()=>{ const id=b.dataset.del; if(confirm('Delete mission?')) db.ref('missions/'+id).remove(); }); }
+function renderMissions(obj){ const wrap = $('missionsList'); wrap.innerHTML=''; Object.values(obj||{}).forEach(m=>{ const d=document.createElement('div'); d.className='card'; d.innerHTML = `<div style='display:flex;justify-content:space-between;align-items:center'><div><strong>${m.title}</strong><div class='muted'>Reward: ${m.reward} TOK</div></div><div><button class='btn' data-id='${m.id}'>Edit</button> <button class='btn danger' data-del='${m.id}'>Delete</button></div></div>`; wrap.appendChild(d); }); wrap.querySelectorAll('button[data-id]').forEach(b=> b.onclick=()=>{ const id=b.dataset.id; const newT=prompt('New title'); const newR=Number(prompt('New reward','50')||0); if(newT) db.ref('missions/'+id).update({ title:newT, reward:newR }); }); wrap.querySelectorAll('button[data-del]').forEach(b=> b.onclick=()=>{ const id=b.dataset.del; if(confirm('Delete mission?')) db.ref('missions/'+id).remove(); }); }
 
-// ===== Loot =====
-function renderLoot(arr){ const wrap = $('lootList'); wrap.innerHTML=''; arr.forEach(l=>{ const d = document.createElement('div'); d.className='card'; d.innerHTML = `<div style='display:flex;justify-content:space-between'><div><strong>${l.playerId}</strong></div><div>${new Date(l.ts||0).toLocaleString()}</div></div><div style='margin-top:8px'>+${l.amount} TOK — ${l.reason}</div><div style='margin-top:8px'><button class='btn danger'>Revoke</button></div>`; wrap.appendChild(d); }); }
+// ===== Loot =====n
+function renderLoot(arr){ const wrap=$('lootList'); wrap.innerHTML=''; arr.forEach(l=>{ const d=document.createElement('div'); d.className='card'; d.innerHTML = `<div style='display:flex;justify-content:space-between'><div><strong>${l.playerId}</strong></div><div>${new Date(l.ts||0).toLocaleString()}</div></div><div style='margin-top:8px'>+${l.amount} TOK — ${l.reason}</div><div style='margin-top:8px'><button class='btn danger' onclick="revokeLoot('${l.playerId}',${l.amount},${l.ts})">Revoke</button></div>`; wrap.appendChild(d); }); }
+async function revokeLoot(playerId,amount,ts){ if(!confirm('Revoke this loot?')) return; await db.ref('users/'+playerId+'/balance').transaction(curr => Math.max(0, Number(curr||0)-Number(amount||0))); await db.ref('lootHistory').push({ playerId, amount:-amount, reason:'admin_revoke', ts: Date.now() }); showToast('Revoked'); }
 
 // ===== Ads manager =====
-$('saveZoneBtn').addEventListener('click', ()=>{ const z = $('moneytagZone').value.trim(); if(!z) return alert('Zone required'); db.ref('ads').update({ zone:z }); showToast('Zone saved'); });
+$('saveZoneBtn').addEventListener('click', ()=>{ const z=$('moneytagZone').value.trim(); if(!z) return alert('Zone required'); db.ref('ads').update({ zone:z }); showToast('Zone saved'); });
 
-// ===== Charts =====
-let chartUsers, chartTaps;
-function setupCharts(){ const ctxU = $('chartUsers').getContext('2d'); const ctxT = $('chartTaps').getContext('2d'); chartUsers = new Chart(ctxU,{type:'line',data:{labels:[],datasets:[{label:'New Users',data:[],borderColor: 'rgba(0,255,136,0.9)',backgroundColor:'rgba(0,255,136,0.12)',fill:true}]},options:{responsive:true}});
- chartTaps = new Chart(ctxT,{type:'bar',data:{labels:[],datasets:[{label:'Taps',data:[],backgroundColor:'rgba(107,33,255,0.6)'}]},options:{responsive:true}});
- // build from simple aggregates
- db.ref('analytics/users').on('value', s=>{ const v = s.val()||{}; chartUsers.data.labels = Object.keys(v); chartUsers.data.datasets[0].data = Object.values(v); chartUsers.update(); });
- db.ref('analytics/taps').on('value', s=>{ const v = s.val()||{}; chartTaps.data.labels = Object.keys(v); chartTaps.data.datasets[0].data = Object.values(v); chartTaps.update(); });
-}
+// // ===== Charts =====n
+let chartUsers, chartTaps; function setupCharts(){ const ctxU=$('chartUsers').getContext('2d'); const ctxT=$('chartTaps').getContext('2d'); chartUsers=new Chart(ctxU,{type:'line',data:{labels:[],datasets:[{label:'New Users',data:[],borderColor:'rgba(0,255,136,0.9)',backgroundColor:'rgba(0,255,136,0.12)',fill:true}]},options:{responsive:true}}); chartTaps=new Chart(ctxT,{type:'bar',data:{labels:[],datasets:[{label:'Taps',data:[],backgroundColor:'rgba(107,33,255,0.6)'}]},options:{responsive:true}}); db.ref('analytics/users').on('value',s=>{const v=s.val()||{}; chartUsers.data.labels=Object.keys(v); chartUsers.data.datasets[0].data=Object.values(v); chartUsers.update();}); db.ref('analytics/taps').on('value',s=>{const v=s.val()||{}; chartTaps.data.labels=Object.keys(v); chartTaps.data.datasets[0].data=Object.values(v); chartTaps.update();}); }
 
-// init charts later once connected
+// ===== Helper =====
+function $(id){return document.getElementById(id);} // override above for consistency
 
-// ===== initial helper operations =====
-function renderRecentSample(){ /* placeholder for UX */ }
-
-// Attach realtime on login
-// attachRealtime called earlier in initialLogin
-
-</script></body>
+</script>
+</body>
 </html>
