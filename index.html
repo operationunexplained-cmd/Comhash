@@ -153,12 +153,6 @@ function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; set
 
 /* ----------------- Ensure user exists in RTDB (FIXED: Prioritizes DB load) ----------------- */
 async function ensureUser(){
-  // ⛔️ START TEMPORARY CACHE CLEAR FIX ⛔️
-  // REMOVE these three lines once you confirm the score problem is fixed for all users/devices.
-  localStorage.removeItem('ht_balance');
-  localStorage.removeItem('ht_score');
-  localStorage.removeItem('ht_totalTaps');
-  // ⛔️ END TEMPORARY CACHE CLEAR FIX ⛔️
   
   try{
     const snap = await usersRef.child(playerId).get();
