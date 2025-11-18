@@ -1,107 +1,67 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-  <title>Admin Panel</title>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    input, button { padding: 10px; margin: 5px 0; width: 100%; }
-    #output { white-space: pre; background:#eee; padding:15px; margin-top:10px; border-radius:5px; }
-    #panel { display:none; }
-  </style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hacker Tapper Admin</title>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+<style>
+body{font-family:sans-serif;padding:10px;background:#020610;color:#fff}
+table{width:100%;border-collapse:collapse}
+th,td{padding:6px;border:1px solid #444;text-align:left}
+button{padding:4px 8px;margin:2px;background:#00e5a8;color:#000;border:none;border-radius:4px;cursor:pointer}
+</style>
 </head>
 <body>
-
-<h2>Admin Panel</h2>
-
-<input id="adminPass" type="password" placeholder="Enter admin password">
-<button onclick="login()">Login</button>
-
-<div id="panel">
-  <h3>Load Users</h3>
-  <input id="dbPath" placeholder="Enter DB path (default: users)" value="users">
-  <button onclick="loadUsers()">Load All Users</button>
-
-  <h3>Add Coins</h3>
-  <input id="uid" placeholder="Telegram ID (e.g., 5516578535)">
-  <input id="addAmount" type="number" placeholder="Amount to add">
-  <button onclick="addCoins()">Add Coins</button>
-
-  <div id="output">Waiting...</div>
-</div>
-
-<!-- Firebase v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<h2>Hacker Tapper Admin Panel</h2>
+<button id="loadUsers">Load All Users</button>
+<table id="usersTable">
+<tr><th>Telegram ID</th><th>Username</th><th>Coins</th><th>Score</th><th>Action</th></tr>
+</table>
 
 <script>
-// ==============================
-// FIREBASE CONFIG
-// ==============================
 const firebaseConfig = {
   apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
   authDomain: "comhashgame.firebaseapp.com",
   databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
   projectId: "comhashgame",
-  storageBucket: "comhashgame.firebasestorage.app",
+  storageBucket: "comhashgame.appspot.com",
   messagingSenderId: "392187080052",
-  appId: "1:392187080052:web:3e31391442ca1315dc1021",
-  measurementId: "G-0YWTXYJ7RN"
+  appId: "1:392187080052:web:3e31391442ca1315dc1021"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ==============================
-// ADMIN LOGIN (HTML ONLY)
-// ==============================
-const ADMIN_PASSWORD = "superadmin123";
+const table = document.getElementById('usersTable');
 
-function login() {
-  const pass = document.getElementById("adminPass").value;
-  if (pass !== ADMIN_PASSWORD) return alert("Wrong password");
-  document.getElementById("panel").style.display = "block";
-}
-
-// ==============================
-// LOAD ANY PATH
-// ==============================
-function loadUsers() {
-  const path = document.getElementById("dbPath").value.trim();
-  if (!path) return alert("Enter database path");
-
-  document.getElementById("output").textContent = "Loading...";
-
-  db.ref(path).once("value").then(snap => {
-    document.getElementById("output").textContent =
-      JSON.stringify(snap.val(), null, 2);
-  });
-}
-
-// ==============================
-// ADD COINS TO USER
-// ==============================
-function addCoins() {
-  const uid = document.getElementById("uid").value.trim();
-  const amount = Number(document.getElementById("addAmount").value.trim());
-
-  if (!uid) return alert("Enter user Telegram ID");
-  if (!amount) return alert("Enter coin amount");
-
-  const path = "users/" + uid + "/coins";
-  const ref = db.ref(path);
-
-  ref.once("value").then(snap => {
-    const current = snap.val() || 0;
-    const newBalance = current + amount;
-
-    ref.set(newBalance);
-
-    document.getElementById("output").textContent =
-      "Added " + amount + " coins to " + uid + 
-      "\nNew Balance: " + newBalance;
-  });
-}
+document.getElementById('loadUsers').onclick = async ()=>{
+  table.innerHTML = '<tr><th>Telegram ID</th><th>Username</th><th>Coins</th><th>Score</th><th>Action</th></tr>';
+  try {
+    const snapshot = await db.ref('users').get();
+    if (!snapshot.exists()) { alert('No users found'); return; }
+    const users = snapshot.val();
+    Object.keys(users).forEach(uid=>{
+      const user = users[uid];
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${uid}</td>
+        <td>${user.username || ''}</td>
+        <td><input type="number" value="${user.coins||0}" style="width:60px"></td>
+        <td>${user.score||0}</td>
+        <td><button data-uid="${uid}">Update Coins</button></td>
+      `;
+      table.appendChild(tr);
+      tr.querySelector('button').onclick = ()=>{
+        const newCoins = Number(tr.querySelector('input').value);
+        db.ref('users/' + uid + '/coins').set(newCoins)
+          .then(()=>alert('Coins updated'))
+          .catch(e=>alert('Error: '+e));
+      };
+    });
+  } catch(e){
+    alert('Load failed: '+e);
+  }
+};
 </script>
-
 </body>
 </html>
