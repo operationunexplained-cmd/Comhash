@@ -118,13 +118,13 @@ try { tg?.expand?.(); } catch(e){}
 const tgUser = tg?.initDataUnsafe?.user || {};
 const playerId = String(tgUser?.id || ('guest_' + Math.random().toString(36).slice(2,9)));
 const playerName = (tgUser?.first_name) ? tgUser.first_name : 'Guest';
-$id('playerTag').textContent = `${playerName} • ${playerId}`;
+// $id('playerTag').textContent = `${playerName} • ${playerId}`; // Original line
 
 /* referral (optional) */
 const startParam = tg?.initDataUnsafe?.start_param || null;
 let referrerId = (startParam && startParam.startsWith('ref_')) ? startParam.replace('ref_','') : null;
 
-/* ----------------- State (FIXED: Initialized to 0, NOT from localStorage) ----------------- */
+/* ----------------- State ----------------- */
 let balance = 0; 
 let score = 0;   
 let totalTaps = 0; 
@@ -135,6 +135,11 @@ let lastAdPending = null;
 
 /* ----------------- UI Helpers ----------------- */
 function render(){
+  // ⭐️ ADDED ID DISPLAY FOR DEBUGGING ⭐️
+  const displayId = (playerId.length > 10) ? playerId.slice(0, 8) + '...' : playerId;
+  $id('playerTag').textContent = `${playerName} • ID: ${displayId}`; 
+  // ⭐️ END ID DISPLAY ⭐️
+
   $id('balance').textContent = balance;
   $id('score').textContent = score;
   $id('taps').textContent = totalTaps;
@@ -151,17 +156,29 @@ function pushLine(text){
 function showModal(title, html){ const m=createNode('div'); m.className='modal'; m.innerHTML=`<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`; $id('modalRoot').appendChild(m); m.querySelector('.closeX').onclick = ()=>m.remove(); return m; }
 function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; setTimeout(()=>g.style.display='none', ms); }
 
-/* ----------------- Ensure user exists in RTDB (FIXED: Prioritizes DB load) ----------------- */
+/* ----------------- Ensure user exists in RTDB ----------------- */
 async function ensureUser(){
+  // ⛔️ START TEMPORARY CACHE CLEAR FIX ⛔️
+  // REMOVE these three lines once you confirm the score problem is fixed for all users/devices.
+  localStorage.removeItem('ht_balance');
+  localStorage.removeItem('ht_score');
+  localStorage.removeItem('ht_totalTaps');
+  // ⛔️ END TEMPORARY CACHE CLEAR FIX ⛔️
+  
+  // ⭐️ DEBUG LOG ⭐️
+  console.log('DEBUG 1: Player ID attempt:', playerId);
   
   try{
     const snap = await usersRef.child(playerId).get();
+    
     if (!snap.exists()){
       // New user: Write default state to DB
       await usersRef.child(playerId).set({
         playerId, username: playerName, balance: 0, score: 0, totalTaps: 0, createdAt: Date.now(), referrer: referrerId || null
       });
       if (referrerId) await applyReferral(referrerId);
+      // ⭐️ DEBUG LOG ⭐️
+      console.log('DEBUG 2: New user created. Balance/Score:', 0, 0);
     } else {
       // Existing user: Load authoritative state from DB
       const d = snap.val();
@@ -172,11 +189,16 @@ async function ensureUser(){
       // load recent loot
       const lootSnap = await lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(6).get();
       recentLoot = []; lootSnap.forEach(s=>recentLoot.push(s.val()));
+      // ⭐️ DEBUG LOG ⭐️
+      console.log('DEBUG 2: Existing user loaded. Balance/Score:', balance, score);
     }
+    
     // Render only after loading/creating user data from the authoritative source
     render();
   } catch(e){ 
-    console.error('ensureUser DB error, falling back to local storage', e); 
+    // ⭐️ DEBUG LOG ⭐️
+    console.error('DEBUG 3: DB error, falling back to local storage. Error:', e.message); 
+    
     // Fallback: If DB query fails, load from localStorage
     balance = Number(localStorage.getItem('ht_balance') || 0);
     score = Number(localStorage.getItem('ht_score') || 0);
