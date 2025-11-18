@@ -8,51 +8,91 @@
 <!-- Telegram WebApp SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- Firebase SDK -->
+<!-- Firebase Realtime Database -->
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#020610;color:#d8f6f0;}
-.wrap{max-width:720px;margin:0 auto;padding:12px;}
-header{display:flex;justify-content:space-between;align-items:center;}
-button{padding:12px;margin:4px;border:none;border-radius:6px;background:#00e5a8;color:#000;font-weight:bold;cursor:pointer;}
-#hackAnim{height:120px;background:#00121a;color:#7ef2d7;padding:6px;font-family:monospace;overflow:hidden;}
-ol{padding-left:18px;}
-.muted{color:#93b6c6;font-size:13px;}
-.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;width:320px;}
-.closeX{position:absolute;right:6px;top:6px;cursor:pointer;color:#93b6c6;}
+  :root{--bg:#020610;--card:#071425;--accent:#00e5a8;--muted:#93b6c6}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#020610);color:#d8f6f0}
+  .wrap{max-width:720px;margin:12px auto;padding:14px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  h1{margin:0;font-size:20px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  #game{display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px}
+  #left{padding:12px}
+  #right{padding:12px}
+  .hud{display:flex;gap:10px;justify-content:space-between;margin-bottom:10px}
+  .stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;min-width:0}
+  #tapBtn{width:100%;padding:16px;border-radius:12px;background:linear-gradient(180deg,#023c32,#01513f);border:0;color:#fff;font-weight:800;font-size:18px}
+  .small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
+  #hackAnim{height:130px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:hidden;font-family:monospace}
+  .line{opacity:0;transform:translateY(6px);animation:in .45s forwards}
+  @keyframes in{to{opacity:1;transform:none}}
+  #glitch{position:fixed;inset:0;display:none;z-index:9999;pointer-events:none}
+  .glitchLayer{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));mix-blend-mode:screen;filter:contrast(1.2) saturate(1.2);animation:glitchAnim .8s ease-in-out}
+  @keyframes glitchAnim{0%{transform:translateX(0)}50%{transform:translateX(6px) skewX(-2deg)}100%{transform:translateX(0)}}
+  ol{padding-left:18px;margin:8px 0}
+  .muted{color:var(--muted);font-size:13px}
+  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
+  .closeX{position:absolute;right:8px;top:6px;cursor:pointer;color:var(--muted)}
+  @media (max-width:480px){#game{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
-<div class="wrap">
-<header>
-<h1>💻 Hacker Tapper</h1>
-<div id="playerTag" class="muted">Loading...</div>
-</header>
+<div class="wrap card">
+  <header>
+    <div>
+      <h1>💻 Hacker Tapper</h1>
+      <div class="muted">Inside Telegram — tap, watch, invite, win.</div>
+    </div>
+    <div id="playerTag" class="muted">Loading...</div>
+  </header>
 
-<div>
-<div>Balance: <span id="balance">0</span> TOK</div>
-<div>Score: <span id="score">0</span></div>
-<div>Taps: <span id="taps">0</span></div>
+  <div id="game" class="card">
+    <div id="left">
+      <div class="hud">
+        <div class="stat">Balance: <strong id="balance">0</strong> TOK</div>
+        <div class="stat">Score: <strong id="score">0</strong></div>
+        <div class="stat">Taps: <strong id="taps">0</strong></div>
+      </div>
+
+      <div id="hackAnim" aria-hidden="false"></div>
+
+      <button id="tapBtn">TAP TO INJECT</button>
+
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="small" id="watchAdBtn">Watch Ad (reward)</button>
+        <button class="small" id="missionsBtn">Missions</button>
+        <button class="small" id="inviteBtn">Invite</button>
+      </div>
+
+      <div id="refBox" class="muted" style="margin-top:12px">Referral: <span id="refLink">-</span></div>
+    </div>
+
+    <aside id="right">
+      <div>
+        <h3 style="margin:0">Leaderboard</h3>
+        <div id="leaderboard" style="margin-top:8px">
+          <ol id="lbList"></ol>
+        </div>
+
+        <div style="margin-top:12px"><strong>Booster:</strong> <span id="boosterInfo">None</span></div>
+
+        <div style="margin-top:12px"><strong>Recent Loot:</strong>
+          <div id="lootList" class="muted" style="max-height:120px;overflow:auto"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <div class="muted" style="margin-top:12px">Host over HTTPS. Replace config & server URLs before production.</div>
 </div>
 
-<div id="hackAnim"></div>
-<button id="tapBtn">TAP TO INJECT</button>
-<div>
-<button id="watchAdBtn">Watch Ad (reward)</button>
-<button id="missionsBtn">Missions</button>
-<button id="inviteBtn">Invite</button>
-</div>
-
-<h3>Leaderboard</h3>
-<ol id="leaderboard"></ol>
-
+<div id="glitch"><div class="glitchLayer"></div></div>
 <div id="modalRoot"></div>
-</div>
 
 <script>
-/* --------------- CONFIG --------------- */
+/* CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
   authDomain: "comhashgame.firebaseapp.com",
@@ -60,176 +100,185 @@ const firebaseConfig = {
   projectId: "comhashgame",
   storageBucket: "comhashgame.appspot.com",
   messagingSenderId: "392187080052",
-  appId: "1:392187080052:web:3e31391442ca1315dc1021"
+  appId: "1:392187080052:web:3e31391442ca1315dc1021",
+  measurementId: "G-0YWTXYJ7RN"
 };
-const VERIFY_AD_URL = 'https://your-server.example.com/verifyAdReward';
-const VERIFY_PLAY_URL = 'https://your-server.example.com/verifyPlay';
-const MONEYTAG_ZONE_SCRIPT = { src: 'https://libtl.com/sdk.js', dataset:{zone:'10199103',sdk:'show_10199103'}, funcName:'show_10199103' };
+const BOT_USERNAME = 'comhash_bot'; 
+
+/* Helpers */
+function $id(id){ return document.getElementById(id); }
+function createNode(tag){ return document.createElement(tag); }
+function showModal(title, html){ 
+  const m = createNode('div'); m.className='modal';
+  m.innerHTML=`<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`;
+  document.getElementById('modalRoot').appendChild(m);
+  m.querySelector('.closeX').onclick = ()=>m.remove();
+}
+
+/* Firebase init */
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const usersRef = db.ref('users');
+const lootRef = db.ref('lootHistory');
 
-/* Telegram user */
-const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+/* Telegram init */
+const tg = window.Telegram?.WebApp || null;
 const tgUser = tg?.initDataUnsafe?.user || {};
-const playerId = String(tgUser?.id || 'guest_' + Math.random().toString(36).slice(2,9));
+const playerId = String(tgUser?.id || 'guest_'+Math.random().toString(36).slice(2,8));
 const playerName = tgUser?.first_name || 'Guest';
-document.getElementById('playerTag').textContent = `${playerName} • ${playerId}`;
+$id('playerTag').textContent = `${playerName} • ${playerId}`;
 
-/* state */
-let balance=0, score=0, totalTaps=0;
-let recentLoot=[];
-const hackAnimEl = document.getElementById('hackAnim');
+/* Referral param */
+const startParam = tg?.initDataUnsafe?.start_param || null;
+let referrerId = startParam && startParam.startsWith('ref_') ? startParam.replace('ref_','') : null;
+
+/* State */
+let balance = Number(localStorage.getItem('ht_balance')||0);
+let score = Number(localStorage.getItem('ht_score')||0);
+let totalTaps = Number(localStorage.getItem('ht_totalTaps')||0);
+let tapBuffer=0, booster={multiplier:1,expiresAt:0}, recentLoot=[];
 
 /* UI render */
 function render(){
-  document.getElementById('balance').textContent = balance;
-  document.getElementById('score').textContent = score;
-  document.getElementById('taps').textContent = totalTaps;
+  $id('balance').textContent=balance;
+  $id('score').textContent=score;
+  $id('taps').textContent=totalTaps;
+  $id('boosterInfo').textContent=(booster.multiplier>1 && Date.now()<booster.expiresAt)?`x${booster.multiplier} (exp ${new Date(booster.expiresAt).toLocaleTimeString()})`:'None';
+  $id('refLink').textContent=`https://t.me/${BOT_USERNAME}?start=ref_${playerId}`;
+  $id('lootList').innerHTML = recentLoot.slice().reverse().map(l=>`<div>${new Date(l.ts).toLocaleTimeString()}: +${l.amount} TOK (${l.reason})</div>`).join('');
 }
 render();
 
-function pushLine(text){
-  const el=document.createElement('div'); el.textContent=text;
-  hackAnimEl.appendChild(el);
-  if(hackAnimEl.children.length>6) hackAnimEl.removeChild(hackAnimEl.firstChild);
-}
-
-function showModal(title,text){
-  const m=document.createElement('div'); m.className='modal';
-  m.innerHTML=`<div class="closeX">✕</div><h3>${title}</h3><div>${text}</div>`;
-  document.getElementById('modalRoot').appendChild(m);
-  m.querySelector('.closeX').onclick=()=>m.remove();
-  return m;
-}
-
-/* Firebase user */
-function ensureUser(){
-  const ref=db.ref('users/' + playerId);
-  ref.once('value').then(snapshot=>{
-    if(snapshot.exists()){
-      const data=snapshot.val();
-      balance=Number(data.balance||0);
-      score=Number(data.score||0);
-      totalTaps=Number(data.totalTaps||0);
+/* Ensure user exists in Firebase */
+usersRef.child(playerId).once('value',snap=>{
+  if(!snap.exists()){
+    usersRef.child(playerId).set({
+      playerId, username:playerName, balance, score, totalTaps,
+      booster, referrer: referrerId||null, referral_claimed:false, createdAt:Date.now()
+    });
+    if(referrerId) applyReferral(referrerId);
+  } else {
+    const data=snap.val();
+    balance=data.balance||balance;
+    score=data.score||score;
+    totalTaps=data.totalTaps||totalTaps;
+    booster=data.booster||booster;
+    // load recent loot
+    lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(6).once('value',lSnap=>{
+      recentLoot=[];
+      lSnap.forEach(d=>recentLoot.push(d.val()));
       render();
-    } else {
-      ref.set({playerId,username:playerName,balance:0,score:0,totalTaps:0,createdAt:Date.now()});
+    });
+  }
+});
+
+/* Referral logic */
+function applyReferral(refId){
+  usersRef.child(playerId).once('value',snap=>{
+    const data=snap.val();
+    if(!data.referral_claimed){
+      usersRef.child(playerId).update({referral_claimed:true});
+      balance+=50;
+      usersRef.child(playerId).update({balance});
+      usersRef.child(refId).once('value',rSnap=>{
+        if(rSnap.exists()){
+          const refBalance=rSnap.val().balance||0;
+          usersRef.child(refId).update({balance:refBalance+100});
+        }
+      });
+      render();
     }
   });
 }
-ensureUser();
 
-/* Persist state */
-function persist(){
-  db.ref('users/' + playerId).update({balance,score,totalTaps});
+/* Persist state locally & Firebase */
+async function persist(force=false){
+  localStorage.setItem('ht_balance',balance);
+  localStorage.setItem('ht_score',score);
+  localStorage.setItem('ht_totalTaps',totalTaps);
+  if(tapBuffer>=20||force){
+    tapBuffer=0;
+    usersRef.child(playerId).update({balance,score,totalTaps,booster});
+  }
+}
+setInterval(()=>persist(true),15000);
+
+/* Hack animation */
+const hackAnimEl=$id('hackAnim');
+function pushLine(txt){
+  const el=createNode('div'); el.className='line'; el.textContent=txt;
+  hackAnimEl.appendChild(el);
+  while(hackAnimEl.children.length>6) hackAnimEl.removeChild(hackAnimEl.firstChild);
 }
 
-/* Tap logic */
-let tapBuffer=0;
-document.getElementById('tapBtn').addEventListener('click',()=>{
-  totalTaps++;
-  tapBuffer++;
-  const gain=Math.floor(Math.random()*2)+1;
+/* Glitch */
+function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; setTimeout(()=>g.style.display='none',ms); }
+
+/* Loot */
+async function grantLoot(amount,reason='event'){
+  balance+=amount;
+  recentLoot.push({amount,reason,ts:Date.now()});
+  if(recentLoot.length>12) recentLoot.shift();
+  render();
+  lootRef.push({playerId,amount,reason,ts:Date.now()});
+  usersRef.child(playerId).update({balance});
+}
+
+/* Booster */
+async function giveBooster(mult,dur){
+  booster={multiplier:mult,expiresAt:Date.now()+dur*1000};
+  usersRef.child(playerId).update({booster});
+  render();
+  setTimeout(()=>{if(Date.now()>=booster.expiresAt){booster={multiplier:1,expiresAt:0};render();}},dur*1000+200);
+}
+
+/* Leaderboard — Real-time Top 100 */
+const lbEl=$id('lbList');
+usersRef.orderByChild('balance').limitToLast(100).on('value',snap=>{
+  const arr=[];
+  snap.forEach(d=>arr.push(d.val()));
+  arr.reverse();
+  lbEl.innerHTML='';
+  arr.forEach((u,i)=>{ const li=createNode('li'); li.textContent=`${i+1}. ${u.username||u.playerId} — ${u.balance} TOK`; lbEl.appendChild(li); });
+});
+
+/* Tap button logic */
+let sessionStart=0,sessionTaps=0;
+$id('tapBtn').addEventListener('click',async()=>{
+  if(!sessionStart) sessionStart=Date.now();
+  sessionTaps++; totalTaps++; tapBuffer++;
+  const mult=(booster.multiplier>1 && booster.expiresAt>Date.now())?booster.multiplier:1;
+  const gain=Math.round(1*mult+Math.random());
   score+=gain;
   if(totalTaps%5===0){
-    const tok=Math.floor(Math.random()*3)+1;
+    const tok=Math.max(1,Math.floor(gain/1));
     balance+=tok;
     recentLoot.push({amount:tok,reason:'tap_reward',ts:Date.now()});
+    if(recentLoot.length>12) recentLoot.shift();
   }
-  pushLine(`> injected +${gain} pts`);
-  if(totalTaps%30===0) onThirty();
-  render();
-  if(tapBuffer>=20){tapBuffer=0;persist();}
+  render(); pushLine(`> injected +${gain} pts`);
+  if(Math.random()<0.03) showGlitch(700);
+  if(Math.random()<0.02){ const amt=Math.floor(Math.random()*50)+25; await grantLoot(amt,'random_drop'); }
+  if(totalTaps%30===0){ await onThirty(); sessionStart=0; sessionTaps=0; }
+  if(tapBuffer>=20) await persist();
 });
 
-/* 30 taps event with MoneyTag ad */
+/* 30-tap actions */
 async function onThirty(){
   pushLine('!!! SYSTEM EVENT: 30 TAPS !!!');
-  showModal('Event','30 taps achieved! Checking ad reward...');
-  const adResult = await showAdFlow();
-  let loot=0;
-  if(adResult==='rewarded'){
-    loot=Math.floor(Math.random()*150)+50;
-    balance+=loot;
-    showModal('Reward',`Ad rewarded! +${loot} TOK`);
-  } else {
-    loot=20;
-    balance+=loot;
-    showModal('Notice',`No ad reward. +${loot} TOK granted`);
-  }
-  render();
-  persist();
+  showGlitch(900);
+  const loot=Math.floor(Math.random()*150)+50; await grantLoot(loot,'30tap_event');
+  await giveBooster(2,20);
+  showModal('Reward',`Booster x2 (20s) +${loot} TOK`);
 }
 
-/* Ad flow */
-let moneytagLoaded=false;
-function injectMoneyTag(){
-  if(moneytagLoaded)return;
-  const s=document.createElement('script');
-  s.src=MONEYTAG_ZONE_SCRIPT.src;
-  s.dataset.zone=MONEYTAG_ZONE_SCRIPT.dataset.zone;
-  s.dataset.sdk=MONEYTAG_ZONE_SCRIPT.dataset.sdk;
-  s.onload=()=>{moneytagLoaded=true; console.log('MoneyTag SDK loaded');};
-  document.head.appendChild(s);
-}
-async function showAdFlow(){
-  injectMoneyTag();
-  await new Promise(r=>setTimeout(r,500));
-  try{
-    if(typeof window.show_10199103==='function'){
-      window.show_10199103();
-      await callVerifyAdServer({playerId});
-      return 'rewarded';
-    }
-  }catch(e){console.warn(e);}
-  const ok=confirm('Simulate ad watched?');
-  if(ok){await callVerifyAdServer({playerId,simulated:true}); return 'rewarded';}
-  return 'skipped';
-}
+/* Missions / Invite / Ad buttons */
+$id('missionsBtn').addEventListener('click',()=>showModal('Mission','Manual mission: claim 25 TOK'));
+$id('inviteBtn').addEventListener('click',()=>{ const link=`https://t.me/${BOT_USERNAME}?start=ref_${playerId}`; navigator.clipboard?.writeText(link).then(()=>alert('Referral link copied'),()=>alert(link)); });
+$id('watchAdBtn').addEventListener('click',async()=>{ alert('Ad reward simulated: +50 TOK'); await grantLoot(50,'manual_ad'); });
 
-/* server verification */
-async function callVerifyAdServer(payload){
-  try{await fetch(VERIFY_AD_URL,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});}catch(e){console.warn(e);}
-}
-
-/* Manual buttons */
-document.getElementById('watchAdBtn').addEventListener('click',async ()=>{
-  const r=await showAdFlow();
-  if(r==='rewarded'){
-    const reward=Math.floor(Math.random()*50)+20;
-    balance+=reward; render(); persist();
-    alert(`Ad rewarded ${reward} TOK`);
-  } else alert('Ad skipped/unavailable');
-});
-
-document.getElementById('missionsBtn').addEventListener('click',()=>{
-  const reward=25; balance+=reward; render(); persist();
-  showModal('Mission','Manual mission claimed: +25 TOK');
-});
-
-document.getElementById('inviteBtn').addEventListener('click',()=>{
-  const link=`https://t.me/comhash_bot?start=ref_${playerId}`;
-  navigator.clipboard?.writeText(link).then(()=>alert('Referral link copied'));
-});
-
-/* Leaderboard */
-function refreshLeaderboard(){
-  db.ref('users').orderByChild('balance').limitToLast(16).once('value',snap=>{
-    const lb=[];
-    snap.forEach(s=>lb.push(s.val()));
-    lb.reverse();
-    const lbEl=document.getElementById('leaderboard');
-    lbEl.innerHTML='';
-    lb.forEach(u=>{const li=document.createElement('li'); li.textContent=`${u.username||u.playerId} — ${u.balance}`; lbEl.appendChild(li);});
-  });
-}
-refreshLeaderboard();
-setInterval(refreshLeaderboard,15000);
-setInterval(persist,10000);
-
-/* Inject MoneyTag early */
-setTimeout(()=>injectMoneyTag(),800);
-
+window.addEventListener('beforeunload',()=>persist(true));
+setInterval(()=>{if(tapBuffer>0) persist();},5000);
 </script>
 </body>
 </html>
