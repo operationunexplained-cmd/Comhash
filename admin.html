@@ -1,330 +1,177 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ComHash Admin Panel</title>
+<meta charset="UTF-8">
+<title>MoneyTag Admin Panel</title>
+<style>
+    body {
+        margin:0; font-family: Arial, sans-serif; background:#111; color:white;
+    }
+    .hidden { display:none; }
+    .container { padding:20px; }
+    button { padding:8px 15px; margin:5px; cursor:pointer; }
+    input, select { padding:8px; margin:5px; }
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
+    /* TOP BAR */
+    #topbar {
+        background:#222; padding:15px; display:flex; justify-content:space-between; align-items:center;
+    }
+    #menu button { margin-right:10px; }
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        body { margin:0; font-family:Arial; background:#0d1117; color:white; }
-
-        .login-box {
-            max-width:350px; margin:50px auto; padding:20px;
-            background:#161b22; border-radius:12px;
-        }
-
-        input, button, select {
-            padding:10px; width:100%; margin:8px 0;
-            border:none; border-radius:6px; font-size:15px;
-        }
-
-        input { background:#0d1117; color:white; }
-        button { background:#238636; color:white; font-weight:bold; }
-        button.red { background:#d32626; }
-        .nav { display:flex; background:#161b22; padding:10px; }
-        .nav button { flex:1; margin: 0 5px; background:#21262d; }
-
-        .section { display:none; padding:15px; }
-        .card {
-            background:#161b22; padding:15px; border-radius:10px; margin:10px 0;
-        }
-
-        .toggle { position:absolute; top:10px; right:10px; }
-    </style>
+    /* DARK MODE */
+    .light { background:white !important; color:black !important; }
+    .light #topbar { background:#eee !important; }
+</style>
 </head>
-
 <body>
 
-<button class="toggle" onclick="toggleDark()">Dark Mode</button>
-
-<!-- LOGIN -->
-<div id="loginPage" class="login-box">
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="container">
     <h2>Admin Login</h2>
-
-    <input id="adminUser" placeholder="Username">
-    <input id="adminPass" placeholder="Password" type="password">
-
-    <button onclick="adminLogin()">Login</button>
-    <p id="loginError" style="color:red;"></p>
+    <form id="loginForm">
+        <input id="username" placeholder="Username"><br>
+        <input id="password" type="password" placeholder="Password"><br>
+        <button type="submit">Login</button>
+    </form>
 </div>
 
-<!-- DASHBOARD -->
-<div id="adminPanel" style="display:none;">
+<!-- MAIN PANEL -->
+<div id="adminPanel" class="hidden">
 
-    <div class="nav">
-        <button onclick="show('users')">Users</button>
-        <button onclick="show('missions')">Missions</button>
-        <button onclick="show('loot')">Recent Loot</button>
-        <button onclick="show('ads')">Ads</button>
-        <button onclick="show('charts')">Analytics</button>
+    <!-- TOP MENU -->
+    <div id="topbar">
+        <div id="menu">
+            <button onclick="showPage('dashboard')">Dashboard</button>
+            <button onclick="showPage('users')">Users</button>
+            <button onclick="showPage('missions')">Missions</button>
+            <button onclick="showPage('ads')">Ads Manager</button>
+            <button onclick="showPage('loot')">Recent Loot</button>
+            <button onclick="showPage('charts')">Live Charts</button>
+        </div>
+        <button onclick="toggleMode()">Dark/Light</button>
     </div>
 
-    <!-- USERS -->
-    <div id="users" class="section">
-        <h2>User Manager</h2>
+    <!-- PAGES -->
+    <div id="pages" class="container">
 
-        <input id="searchID" placeholder="Enter Telegram ID">
-        <button onclick="searchUser()">Search</button>
+        <!-- DASHBOARD -->
+        <div id="dashboard">
+            <h2>Admin Dashboard</h2>
+            <p>Welcome to MoneyTag Admin Panel.</p>
+        </div>
 
-        <div id="userResult"></div>
+        <!-- USERS PAGE -->
+        <div id="users" class="hidden">
+            <h2>Users</h2>
+
+            <input id="userSearch" placeholder="Search user..." oninput="searchUser()">
+
+            <div id="userList">
+                <!-- Fake sample data -->
+            </div>
+        </div>
+
+        <!-- MISSIONS PAGE -->
+        <div id="missions" class="hidden">
+            <h2>Missions Editor</h2>
+            <input placeholder="Mission Title">
+            <input placeholder="Reward Amount">
+            <button>Add Mission</button>
+        </div>
+
+        <!-- ADS PAGE -->
+        <div id="ads" class="hidden">
+            <h2>Ads Manager</h2>
+            <p>Manage banner ads, rewarded ads, CPM settings, etc.</p>
+        </div>
+
+        <!-- RECENT LOOT -->
+        <div id="loot" class="hidden">
+            <h2>Recent Loot</h2>
+            <ul id="lootList">
+                <li>User123 earned 20 coins</li>
+                <li>User999 earned 40 coins</li>
+            </ul>
+        </div>
+
+        <!-- CHARTS -->
+        <div id="charts" class="hidden">
+            <h2>Live Analytics</h2>
+            <p>(Mock chart placeholder)</p>
+            <div style="height:200px; background:#333; border-radius:8px;"></div>
+        </div>
+
     </div>
-
-    <!-- MISSIONS -->
-    <div id="missions" class="section">
-        <h2>Missions Editor</h2>
-
-        <input id="missionName" placeholder="Mission Name">
-        <input id="missionReward" type="number" placeholder="Reward">
-
-        <button onclick="addMission()">Add Mission</button>
-
-        <h3>All Missions</h3>
-        <div id="missionsList"></div>
-    </div>
-
-    <!-- RECENT LOOT -->
-    <div id="loot" class="section">
-        <h2>Recent Loot</h2>
-        <div id="lootList"></div>
-    </div>
-
-    <!-- ADS -->
-    <div id="ads" class="section">
-        <h2>Ads Manager</h2>
-
-        <input id="zoneID" placeholder="MoneyTag Zone ID">
-        <button onclick="saveZone()">Save</button>
-
-        <p>Current Zone: <span id="currentZone"></span></p>
-    </div>
-
-    <!-- ANALYTICS -->
-    <div id="charts" class="section">
-        <h2>Analytics</h2>
-
-        <canvas id="usersChart"></canvas>
-        <canvas id="earnChart"></canvas>
-    </div>
-
 </div>
 
 <script>
-/* --------------------------------------------------
-   ADMIN LOGIN
--------------------------------------------------- */
+// LOGIN SYSTEM
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "Arshad@123";
 
-function adminLogin() {
-    let u = adminUser.value;
-    let p = adminPass.value;
+document.getElementById("loginForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    const u = username.value;
+    const p = password.value;
 
-    if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
-        loginPage.style.display = "none";
-        adminPanel.style.display = "block";
-        loadAll();
+    if(u === ADMIN_USERNAME && p === ADMIN_PASSWORD){
+        loginPage.classList.add("hidden");
+        adminPanel.classList.remove("hidden");
     } else {
-        loginError.innerText = "Invalid Credentials";
+        alert("Invalid credentials");
     }
+});
+
+// PAGE SWITCHER
+function showPage(id){
+    document.querySelectorAll("#pages > div").forEach(x => x.classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
 }
 
-/* --------------------------------------------------
-   DARK MODE
--------------------------------------------------- */
-function toggleDark() {
-    if (document.body.style.background === "white") {
-        document.body.style.background = "#0d1117";
-        document.body.style.color = "white";
-    } else {
-        document.body.style.background = "white";
-        document.body.style.color = "black";
-    }
+// DARK MODE
+function toggleMode(){
+    document.body.classList.toggle("light");
 }
 
-/* --------------------------------------------------
-   FIREBASE CONFIG
--------------------------------------------------- */
-const firebaseConfig = {
-    apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
-    authDomain: "comhashgame.firebaseapp.com",
-    databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
-    projectId: "comhashgame",
-    storageBucket: "comhashgame.firebasestorage.app",
-    messagingSenderId: "392187080052",
-    appId: "1:392187080052:web:3e31391442ca1315dc1021",
-    measurementId: "G-0YWTXYJ7RN"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+// SAMPLE USERS
+let users = [
+    {name:"Arshad", balance:200, banned:false},
+    {name:"Rahul", balance:50, banned:true},
+    {name:"Mohan", balance:120, banned:false}
+];
 
-/* --------------------------------------------------
-   SECTION SWITCHER
--------------------------------------------------- */
-function show(sec) {
-    document.querySelectorAll(".section").forEach(s => s.style.display = "none");
-    document.getElementById(sec).style.display = "block";
-}
-
-/* --------------------------------------------------
-   USERS
--------------------------------------------------- */
-function searchUser() {
-    let id = searchID.value;
-    if (!id) return alert("Enter ID");
-
-    db.ref("users/" + id).once("value", snap => {
-        if (!snap.exists()) {
-            userResult.innerHTML = "<p>No user found</p>";
-            return;
-        }
-
-        let u = snap.val();
-
-        userResult.innerHTML = `
-            <div class='card'>
-                <p><b>ID:</b> ${id}</p>
-                <p><b>Balance:</b> ${u.balance || 0}</p>
-                <p><b>Banned:</b> ${u.banned ? "YES" : "NO"}</p>
-
-                <input id="newBal" type="number" placeholder="New Balance">
-                <button onclick="updateBalance('${id}')">Update Balance</button>
-
-                <button class="red" onclick="banUser('${id}')">Ban</button>
-                <button onclick="unbanUser('${id}')">Unban</button>
+function renderUsers(list){
+    userList.innerHTML = "";
+    list.forEach((u,i)=>{
+        userList.innerHTML += `
+            <div style="margin:10px 0; padding:10px; border:1px solid #444;">
+                <b>${u.name}</b><br>
+                Balance: ${u.balance}<br>
+                Status: ${u.banned ? "❌ Banned" : "✅ Active"}<br>
+                <button onclick="toggleBan(${i})">${u.banned ? "Unban" : "Ban"}</button>
+                <button onclick="editBalance(${i})">Edit Balance</button>
             </div>
         `;
     });
 }
+renderUsers(users);
 
-function updateBalance(id) {
-    db.ref("users/" + id).update({
-        balance: Number(newBal.value)
-    });
-    alert("Balance Updated");
+function searchUser(){
+    const q = userSearch.value.toLowerCase();
+    renderUsers(users.filter(u => u.name.toLowerCase().includes(q)));
 }
 
-function banUser(id) {
-    db.ref("users/" + id).update({ banned: true });
-    alert("User Banned");
+function toggleBan(i){
+    users[i].banned = !users[i].banned;
+    renderUsers(users);
 }
 
-function unbanUser(id) {
-    db.ref("users/" + id).update({ banned: false });
-    alert("User Unbanned");
-}
-
-/* --------------------------------------------------
-   MISSIONS
--------------------------------------------------- */
-function addMission() {
-    let name = missionName.value;
-    let reward = Number(missionReward.value);
-
-    db.ref("missions").push({ name, reward });
-    alert("Mission Added");
-}
-
-function loadMissions() {
-    db.ref("missions").on("value", snap => {
-        let html = "";
-        snap.forEach(m => {
-            let d = m.val();
-            html += `
-                <div class='card'>
-                    <p><b>${d.name}</b></p>
-                    <p>Reward: ${d.reward}</p>
-                    <button class="red" onclick="delMission('${m.key}')">Delete</button>
-                </div>
-            `;
-        });
-        missionsList.innerHTML = html;
-    });
-}
-
-function delMission(id) {
-    db.ref("missions/" + id).remove();
-}
-
-/* --------------------------------------------------
-   RECENT LOOT
--------------------------------------------------- */
-function loadLoot() {
-    db.ref("loot").limitToLast(100).on("value", snap => {
-        let html = "";
-        snap.forEach(l => {
-            let d = l.val();
-            html += `
-                <div class='card'>
-                    <p><b>User:</b> ${d.user}</p>
-                    <p><b>Amount:</b> ${d.amount}</p>
-                    <p>${new Date(d.time).toLocaleString()}</p>
-                </div>
-            `;
-        });
-        lootList.innerHTML = html;
-    });
-}
-
-/* --------------------------------------------------
-   ADS MANAGER
--------------------------------------------------- */
-function saveZone() {
-    db.ref("ads").update({
-        zone: zoneID.value
-    });
-    alert("Zone Updated");
-}
-
-function loadZone() {
-    db.ref("ads/zone").on("value", snap => {
-        currentZone.innerText = snap.val() || "Not Set";
-    });
-}
-
-/* --------------------------------------------------
-   CHARTS
--------------------------------------------------- */
-let usersChart, earnChart;
-
-function loadCharts() {
-    usersChart = new Chart(document.getElementById("usersChart"), {
-        type: "line",
-        data: { labels: [], datasets: [{ label: "Users", data: [] }] }
-    });
-
-    earnChart = new Chart(document.getElementById("earnChart"), {
-        type: "line",
-        data: { labels: [], datasets: [{ label: "Earnings", data: [] }] }
-    });
-
-    db.ref("stats/users").on("value", snap => {
-        let d = snap.val() || {};
-        usersChart.data.labels = Object.keys(d);
-        usersChart.data.datasets[0].data = Object.values(d);
-        usersChart.update();
-    });
-
-    db.ref("stats/earn").on("value", snap => {
-        let d = snap.val() || {};
-        earnChart.data.labels = Object.keys(d);
-        earnChart.data.datasets[0].data = Object.values(d);
-        earnChart.update();
-    });
-}
-
-/* --------------------------------------------------
-   LOAD ALL
--------------------------------------------------- */
-function loadAll() {
-    loadMissions();
-    loadLoot();
-    loadZone();
-    loadCharts();
+function editBalance(i){
+    let newBal = prompt("Enter new balance:", users[i].balance);
+    if(newBal !== null){
+        users[i].balance = Number(newBal);
+        renderUsers(users);
+    }
 }
 </script>
 
