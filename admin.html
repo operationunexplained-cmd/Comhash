@@ -1,107 +1,143 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
 <head>
-    <title>ComHash Admin</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1"><style>
-    body { font-family: Arial; background:#0e0e0e; color:white; margin:0; }
-    .login-box { max-width:320px; margin:120px auto; background:#1b1b1b; padding:25px; border-radius:10px; }
-    input { width:100%; padding:10px; margin:10px 0; border:none; border-radius:6px; background:#242424; color:white; }
-    button { width:100%; padding:12px; border:none; border-radius:6px; background:#00c853; font-size:16px; color:white; cursor:pointer; }
-    button:hover { background:#00e676; }
-    .container { padding:20px; }
-    .card { background:#1a1a1a; padding:15px; margin-bottom:15px; border-radius:10px; }
-    .flex { display:flex; justify-content:space-between; align-items:center; }
-    .user-box { padding:10px; background:#111; margin:5px 0; border-radius:6px; }
-    .btn-small { padding:5px 10px; background:#00c853; border:none; border-radius:5px; color:white; cursor:pointer; }
-</style>
-
-</head><body><!-- LOGIN SCREEN --><div id="loginScreen" class="login-box">
-    <h2>Admin Login</h2>
-    <input id="adminPass" type="password" placeholder="Password">
-    <button onclick="adminLogin()">Login</button>
-</div><!-- DASHBOARD --><div id="dashboard" style="display:none;" class="container">
-    <h2>ComHash Admin</h2><div class="card">
-    <h3>User Search</h3>
-    <input id="searchInput" placeholder="Enter Telegram ID">
-    <button onclick="searchUser()">Search</button>
-    <div id="searchResult"></div>
-</div>
-
-<div class="card">
-    <h3>Top Users (Leaderboard)</h3>
-    <div id="leaderboard"></div>
-</div>
-
-</div><script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script><script>
-// SIMPLE PASSWORD
-const ADMIN_PASSWORD = "Arshad@123";
-
-function adminLogin() {
-    const pass = document.getElementById("adminPass").value;
-    if(pass === ADMIN_PASSWORD) {
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("dashboard").style.display = "block";
-        loadLeaderboard();
-    } else {
-        alert("Wrong Password");
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComHash Admin</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #0f0f0f;
+        color: #fff;
+        margin: 0;
+        padding: 0;
     }
-}
+    h2 {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .container {
+        width: 95%;
+        margin: auto;
+        margin-top: 20px;
+        background: #1a1a1a;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #333;
+        text-align: left;
+    }
+    th {
+        background: #111;
+    }
+    button {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        color: #fff;
+    }
+    .edit-btn { background: #007bff; }
+    .ban-btn { background: #ff3b3b; }
+    .unban-btn { background: #4caf50; }
+</style>
+</head>
+<body>
 
-// FIREBASE CONFIG — REPLACE YOURS
+<h2>ComHash Admin Panel</h2>
+
+<div class="container">
+    <h3>All Users</h3>
+    <table id="usersTable">
+        <tr>
+            <th>User ID</th>
+            <th>Score</th>
+            <th>Banned</th>
+            <th>Actions</th>
+        </tr>
+    </table>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+
 const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  databaseURL: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
+  authDomain: "comhashgame.firebaseapp.com",
+  databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
+  projectId: "comhashgame",
+  storageBucket: "comhashgame.firebasestorage.app",
+  messagingSenderId: "392187080052",
+  appId: "1:392187080052:web:3e31391442ca1315dc1021",
+  measurementId: "G-0YWTXYJ7RN"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
 
-// SEARCH USER
-function searchUser() {
-    const id = document.getElementById("searchInput").value;
-    if(!id) return;
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-    db.ref("users/" + id).once("value", snap => {
-        if(!snap.exists()) {
-            document.getElementById("searchResult").innerHTML = "User not found";
-            return;
-        }
+const usersTable = document.getElementById("usersTable");
 
-        const user = snap.val();
-        document.getElementById("searchResult").innerHTML = `
-            <div class='user-box'>
-                <b>ID:</b> ${id}<br>
-                <b>Balance:</b> ${user.balance || 0}<br>
-                <b>Score:</b> ${user.score || 0}<br>
-                <button class='btn-small' onclick="updateBalance('${id}')">+100 Tokens</button>
-            </div>
+function loadUsers() {
+    const usersRef = ref(db, "users");
+
+    onValue(usersRef, (snapshot) => {
+        const data = snapshot.val();
+        usersTable.innerHTML = `
+            <tr>
+                <th>User ID</th>
+                <th>Score</th>
+                <th>Banned</th>
+                <th>Actions</th>
+            </tr>
         `;
-    });
-}
 
-// UPDATE USER BALANCE
-function updateBalance(uid) {
-    db.ref("users/" + uid + "/balance").transaction(b => (b||0) + 100);
-    alert("Added 100 tokens");
-}
+        if (!data) return;
 
-// LOAD LEADERBOARD
-function loadLeaderboard() {
-    db.ref("users").orderByChild("score").limitToLast(50).on("value", snap => {
-        let arr = [];
-        snap.forEach(s => arr.push({ id:s.key, ...s.val() }));
-        arr.reverse();
+        Object.keys(data).forEach(uid => {
+            const user = data[uid];
+            const row = document.createElement("tr");
 
-        let html = "";
-        arr.forEach(u => {
-            html += `<div class='user-box'>${u.id} — <b>${u.score||0}</b></div>`;
+            row.innerHTML = `
+                <td>${uid}</td>
+                <td>${user.score || 0}</td>
+                <td>${user.banned ? "Yes" : "No"}</td>
+                <td>
+                    <button class='edit-btn' onclick='editScore("${uid}", ${user.score || 0})'>Edit</button>
+                    ${
+                        user.banned 
+                        ? `<button class='unban-btn' onclick='banUser("${uid}", false)'>Unban</button>`
+                        : `<button class='ban-btn' onclick='banUser("${uid}", true)'>Ban</button>`
+                    }
+                </td>
+            `;
+
+            usersTable.appendChild(row);
         });
-
-        document.getElementById("leaderboard").innerHTML = html;
     });
 }
-</script></body>
+
+window.editScore = function(uid, oldScore) {
+    const newScore = prompt("Enter new score:", oldScore);
+    if (newScore === null || isNaN(newScore)) return;
+
+    update(ref(db, "users/" + uid), { score: Number(newScore) });
+};
+
+window.banUser = function(uid, state) {
+    update(ref(db, "users/" + uid), { banned: state });
+    alert(state ? "User Banned!" : "User Unbanned!");
+};
+
+loadUsers();
+</script>
+
+</body>
 </html>
