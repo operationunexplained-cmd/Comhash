@@ -158,12 +158,6 @@ function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; set
 
 /* ----------------- Ensure user exists in RTDB ----------------- */
 async function ensureUser(){
-  // ⛔️ START TEMPORARY CACHE CLEAR FIX ⛔️
-  // REMOVE these three lines once you confirm the score problem is fixed for all users/devices.
-  localStorage.removeItem('ht_balance');
-  localStorage.removeItem('ht_score');
-  localStorage.removeItem('ht_totalTaps');
-  // ⛔️ END TEMPORARY CACHE CLEAR FIX ⛔️
   
   // ⭐️ DEBUG LOG ⭐️
   console.log('DEBUG 1: Player ID attempt:', playerId);
@@ -350,6 +344,7 @@ async function showAdFlow(){
 }
 
 /* ----------------- Tap logic ----------------- */
+/* ----------------- Tap logic (FIXED) ----------------- */
 let sessionStart = 0, sessionTaps = 0;
 $id('tapBtn').addEventListener('click', async ()=>{
   if (!sessionStart) sessionStart = Date.now();
@@ -367,13 +362,16 @@ $id('tapBtn').addEventListener('click', async ()=>{
   pushLine(`> injected +${gain} pts`);
   if (Math.random() < 0.03) showGlitch(700);
   if (Math.random() < 0.02){ const amt = Math.floor(Math.random()*50)+25; await grantLoot(amt,'random_drop'); }
+  
   if (totalTaps % 30 === 0){
     // on 30 taps, run stacked actions
     await onThirty();
-    sessionStart = 0; sessionTaps = 0;
+    // ❌ REMOVED: sessionStart = 0; 
+    // ❌ REMOVED: sessionTaps = 0; 
   }
   if (tapBuffer >= 20) { await persist(); }
 });
+
 
 /* ----------------- 30-tap stacked actions ----------------- */
 async function onThirty(){
