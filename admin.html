@@ -1,608 +1,332 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ComHash — Admin Panel</title>
+    <title>ComHash Admin Panel</title>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
 
-<!-- Chart.js for analytics -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-  :root{
-    --bg:#0b1220; --card:#0f1724; --muted:#94a3b8; --accent:#00e5a8; --glass: rgba(255,255,255,0.03);
-    --light-bg:#f4f6f9; --light-card:#fff; --dark-text:#0b1220;
-  }
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:#e6f7f2}
-  .wrap{display:flex;height:100vh}
-  .sidebar{width:260px;background:linear-gradient(180deg,#071021,#071021);padding:18px;box-shadow:2px 0 8px rgba(0,0,0,0.35)}
-  .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-  .brand .logo{width:44px;height:44px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#012;box-shadow:0 6px 24px rgba(0,0,0,0.25)}
-  .nav{margin-top:8px}
-  .nav button{display:block;width:100%;padding:10px 12px;border-radius:8px;border:0;background:transparent;color:var(--muted);text-align:left;cursor:pointer;margin-bottom:6px}
-  .nav button.active{background:var(--glass);color:#dff7ef}
-  .main{flex:1;padding:18px;overflow:auto;background:linear-gradient(180deg,#021018,#021018)}
-  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 6px 18px rgba(0,0,0,0.35)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-  .muted{color:var(--muted);font-size:13px}
-  input, select, textarea{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;width:100%}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
-  .small{padding:6px 8px;border-radius:8px;border:0;background:var(--accent);color:#012;cursor:pointer}
-  .danger{background:#ff6b6b;color:#fff}
-  .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.03);font-size:13px}
-  .searchbar{display:flex;gap:8px;align-items:center}
-  .flexrow{display:flex;gap:8px;align-items:center}
-  .page{display:none}
-  .page.active{display:block}
-  .top-controls{display:flex;gap:8px;align-items:center}
-  .dark-toggle{padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
-  /* light mode overrides */
-  body.light{background:var(--light-bg);color:var(--dark-text)}
-  body.light .sidebar{background:linear-gradient(180deg,var(--light-card),var(--light-card));box-shadow:none}
-  body.light .card{background:var(--light-card);color:var(--dark-text);border:1px solid rgba(0,0,0,0.06);box-shadow:0 6px 18px rgba(0,0,0,0.05)}
-  body.light input, body.light select, body.light textarea{background:#fff;border:1px solid #e6e9ef;color:var(--dark-text)}
-  .footer{margin-top:18px;color:var(--muted);font-size:13px}
-  @media(max-width:880px){ .sidebar{display:none} .wrap{flex-direction:column} .main{padding:12px} }
-</style>
+    <style>
+        body { margin:0; font-family:Arial; background:#0d1117; color:white; }
+
+        .login-box {
+            max-width:350px; margin:50px auto; padding:20px;
+            background:#161b22; border-radius:12px;
+        }
+
+        input, button, select {
+            padding:10px; width:100%; margin:8px 0;
+            border:none; border-radius:6px; font-size:15px;
+        }
+
+        input { background:#0d1117; color:white; }
+        button { background:#238636; color:white; font-weight:bold; }
+        button.red { background:#d32626; }
+        .nav { display:flex; background:#161b22; padding:10px; }
+        .nav button { flex:1; margin: 0 5px; background:#21262d; }
+
+        .section { display:none; padding:15px; }
+        .card {
+            background:#161b22; padding:15px; border-radius:10px; margin:10px 0;
+        }
+
+        .toggle { position:absolute; top:10px; right:10px; }
+    </style>
 </head>
+
 <body>
-<div class="wrap">
-  <aside class="sidebar card" id="sidebar">
-    <div class="brand">
-      <div class="logo">C</div>
-      <div>
-        <div style="font-weight:800">ComHash Admin</div>
-        <div class="muted">Panel</div>
-      </div>
-    </div>
 
-    <div style="margin-bottom:8px">
-      <div class="muted">Logged in as</div>
-      <div id="adminUser" style="font-weight:700;margin-top:6px">—</div>
-    </div>
+<button class="toggle" onclick="toggleDark()">Dark Mode</button>
 
-    <div class="nav" id="nav">
-      <button data-page="dashboard" class="active">Dashboard</button>
-      <button data-page="users">Users</button>
-      <button data-page="recent">Recent Loot</button>
-      <button data-page="missions">Missions Editor</button>
-      <button data-page="ads">Manage Ads</button>
-      <button data-page="settings">Settings</button>
-    </div>
+<!-- LOGIN -->
+<div id="loginPage" class="login-box">
+    <h2>Admin Login</h2>
 
-    <div class="footer">
-      <div style="margin-top:12px"><button id="logoutBtn" class="small">Logout</button></div>
-    </div>
-  </aside>
+    <input id="adminUser" placeholder="Username">
+    <input id="adminPass" placeholder="Password" type="password">
 
-  <main class="main">
-    <div class="topbar">
-      <div>
-        <h2 style="margin:0">Dashboard</h2>
-        <div class="muted" id="statusText">Realtime admin console</div>
-      </div>
-      <div class="top-controls">
-        <div class="searchbar">
-          <input id="globalSearch" placeholder="Search users by name or id..." />
-          <button id="searchBtn" class="small">Search</button>
-        </div>
-        <button id="darkToggle" class="dark-toggle">Toggle Dark</button>
-        <button id="openLogin" class="small" style="display:none">Login</button>
-      </div>
-    </div>
-
-    <!-- PAGES -->
-    <section id="dashboard" class="page active">
-      <div class="grid">
-        <div class="card">
-          <h3>Total Users</h3>
-          <div style="font-size:22px;font-weight:700" id="statUsers">—</div>
-        </div>
-        <div class="card">
-          <h3>Active Today</h3>
-          <div style="font-size:22px;font-weight:700" id="statActive">—</div>
-        </div>
-        <div class="card">
-          <h3>Total Balance</h3>
-          <div style="font-size:22px;font-weight:700" id="statBalance">—</div>
-        </div>
-        <div class="card">
-          <h3>Ad Rewards Today</h3>
-          <div style="font-size:22px;font-weight:700" id="statAds">—</div>
-        </div>
-      </div>
-
-      <div style="margin-top:12px" class="grid">
-        <div class="card" style="min-height:260px">
-          <h3>Users / Day (last 30 days)</h3>
-          <canvas id="chartUsers" style="width:100%;height:220px"></canvas>
-        </div>
-
-        <div class="card" style="min-height:260px">
-          <h3>Daily Taps (last 30 days)</h3>
-          <canvas id="chartTaps" style="width:100%;height:220px"></canvas>
-        </div>
-      </div>
-
-      <div style="margin-top:12px" class="card">
-        <h3>Top 10 Leaderboard (live)</h3>
-        <ol id="topList"></ol>
-      </div>
-    </section>
-
-    <section id="users" class="page">
-      <div class="card">
-        <h3>Users</h3>
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <input id="filterInput" placeholder="Filter by username / id" />
-          <select id="banFilter"><option value="all">All</option><option value="banned">Banned</option><option value="active">Active</option></select>
-          <button id="loadUsers" class="small">Load</button>
-        </div>
-
-        <div id="usersTableWrap" style="margin-top:10px;overflow:auto;max-height:520px">
-          <table id="usersTable">
-            <thead><tr><th>UID</th><th>Username</th><th>Score</th><th>Balance</th><th>Taps</th><th>Actions</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="recent" class="page">
-      <div class="card">
-        <h3>Recent Loot</h3>
-        <div style="margin-top:8px"><button id="refreshLoot" class="small">Refresh</button></div>
-        <div id="lootWrap" style="margin-top:10px;max-height:520px;overflow:auto"></div>
-      </div>
-    </section>
-
-    <section id="missions" class="page">
-      <div class="card">
-        <h3>Missions Editor</h3>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input id="newMissionTitle" placeholder="Mission Title" />
-          <input id="newMissionReward" placeholder="Reward (TOK)" type="number" />
-          <button id="addMissionBtn" class="small">Add Mission</button>
-        </div>
-
-        <div id="missionsList" style="margin-top:12px"></div>
-      </div>
-    </section>
-
-    <section id="ads" class="page">
-      <div class="card">
-        <h3>Ad Manager</h3>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input id="adTitle" placeholder="Ad Title" />
-          <input id="adReward" placeholder="Reward (TOK)" type="number" />
-          <button id="addAdBtn" class="small">Add Ad</button>
-        </div>
-
-        <div id="adsList" style="margin-top:12px"></div>
-      </div>
-    </section>
-
-    <section id="settings" class="page">
-      <div class="card">
-        <h3>Settings</h3>
-        <div style="margin-top:8px">
-          <label class="muted">Admin Password (change locally):</label>
-          <input id="adminPassword" type="password" placeholder="Set admin password (local)" />
-          <div style="margin-top:8px"><button id="setPwdBtn" class="small">Save</button></div>
-          <p class="muted" style="margin-top:10px">Note: This password is stored in localStorage to gate the UI. For production, use server-side auth.</p>
-        </div>
-      </div>
-    </section>
-
-  </main>
+    <button onclick="adminLogin()">Login</button>
+    <p id="loginError" style="color:red;"></p>
 </div>
 
-<!-- Admin login modal -->
-<div id="loginModal" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:9999">
-  <div style="background:#0f1724;padding:20px;border-radius:10px;width:360px;color:#e6f7f2">
-    <h3 style="margin:0 0 10px 0">Admin Login</h3>
-    <div style="margin-bottom:8px"><input id="loginPwd" placeholder="Enter admin password" type="password" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" /></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button id="loginCancel" class="small">Cancel</button>
-      <button id="loginOk" class="small">Login</button>
+<!-- DASHBOARD -->
+<div id="adminPanel" style="display:none;">
+
+    <div class="nav">
+        <button onclick="show('users')">Users</button>
+        <button onclick="show('missions')">Missions</button>
+        <button onclick="show('loot')">Recent Loot</button>
+        <button onclick="show('ads')">Ads</button>
+        <button onclick="show('charts')">Analytics</button>
     </div>
-    <div style="margin-top:8px" class="muted">Default password is localADMIN (change it in settings)</div>
-  </div>
+
+    <!-- USERS -->
+    <div id="users" class="section">
+        <h2>User Manager</h2>
+
+        <input id="searchID" placeholder="Enter Telegram ID">
+        <button onclick="searchUser()">Search</button>
+
+        <div id="userResult"></div>
+    </div>
+
+    <!-- MISSIONS -->
+    <div id="missions" class="section">
+        <h2>Missions Editor</h2>
+
+        <input id="missionName" placeholder="Mission Name">
+        <input id="missionReward" type="number" placeholder="Reward">
+
+        <button onclick="addMission()">Add Mission</button>
+
+        <h3>All Missions</h3>
+        <div id="missionsList"></div>
+    </div>
+
+    <!-- RECENT LOOT -->
+    <div id="loot" class="section">
+        <h2>Recent Loot</h2>
+        <div id="lootList"></div>
+    </div>
+
+    <!-- ADS -->
+    <div id="ads" class="section">
+        <h2>Ads Manager</h2>
+
+        <input id="zoneID" placeholder="MoneyTag Zone ID">
+        <button onclick="saveZone()">Save</button>
+
+        <p>Current Zone: <span id="currentZone"></span></p>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="charts" class="section">
+        <h2>Analytics</h2>
+
+        <canvas id="usersChart"></canvas>
+        <canvas id="earnChart"></canvas>
+    </div>
+
 </div>
 
 <script>
-/* ======================= CONFIG - EDIT BEFORE USE =======================
-  Replace FIREBASE_CONFIG with your project's Realtime Database config if different.
-  Set DEFAULT_ADMIN_PASSWORD to a secure value for local gating (still not server-secure).
-======================================================================= */
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
-  authDomain: "comhashgame.firebaseapp.com",
-  databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
-  projectId: "comhashgame",
-  storageBucket: "comhashgame.appspot.com",
-  messagingSenderId: "392187080052",
-  appId: "1:392187080052:web:3e31391442ca1315dc1021"
-};
-const DEFAULT_ADMIN_PASSWORD = localStorage.getItem('admin_pwd') || 'localADMIN';
-/* ======================= END CONFIG ================================== */
+/* --------------------------------------------------
+   ADMIN LOGIN
+-------------------------------------------------- */
+const ADMIN_USERNAME = "admin";
+const ADMIN_PASSWORD = "Arshad@123";
 
-firebase.initializeApp(FIREBASE_CONFIG);
-const rdb = firebase.database();
-const usersRef = rdb.ref('users');
-const lootRef = rdb.ref('lootHistory');
-const missionsRef = rdb.ref('missions');
-const adsRef = rdb.ref('ads');
+function adminLogin() {
+    let u = adminUser.value;
+    let p = adminPass.value;
 
-/* ---------- Simple admin login (client-side gate) ---------- */
-const loginModal = document.getElementById('loginModal');
-const loginOk = document.getElementById('loginOk');
-const loginCancel = document.getElementById('loginCancel');
-const loginPwd = document.getElementById('loginPwd');
-const adminUser = document.getElementById('adminUser');
-
-function showLogin(){
-  loginModal.style.display = 'flex';
-}
-function hideLogin(){
-  loginModal.style.display = 'none';
-}
-document.getElementById('openLogin').onclick = showLogin;
-loginCancel.onclick = ()=>{ hideLogin(); };
-
-loginOk.onclick = ()=>{
-  const val = loginPwd.value || '';
-  const saved = localStorage.getItem('admin_pwd') || DEFAULT_ADMIN_PASSWORD;
-  if (val === saved) {
-    window.isAdmin = true;
-    adminUser.textContent = 'Administrator';
-    hideLogin();
-    attachRealtimeListeners();
-  } else {
-    alert('Wrong password');
-  }
-};
-
-// if admin pwd exists in localStorage use it
-if (localStorage.getItem('admin_pwd')) {
-  window.ADMIN_PWD = localStorage.getItem('admin_pwd');
-}
-
-/* prompt login immediately */
-showLogin();
-
-/* ---------- UI navigation ---------- */
-const navButtons = document.querySelectorAll('.nav button');
-navButtons.forEach(b=>{
-  b.addEventListener('click', ()=>{
-    navButtons.forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.getElementById(b.dataset.page).classList.add('active');
-  });
-});
-
-/* ---------- Dark mode toggle ---------- */
-const darkToggle = document.getElementById('darkToggle');
-darkToggle.onclick = ()=>{
-  document.body.classList.toggle('light');
-  const v = document.body.classList.contains('light') ? 'Light' : 'Dark';
-  darkToggle.textContent = `${v} mode`;
-};
-
-/* ---------- Dashboard stats & charts ---------- */
-const statUsers = document.getElementById('statUsers');
-const statActive = document.getElementById('statActive');
-const statBalance = document.getElementById('statBalance');
-const statAds = document.getElementById('statAds');
-const topList = document.getElementById('topList');
-
-let chartUsers, chartTaps;
-function initCharts(){
-  const ctxU = document.getElementById('chartUsers').getContext('2d');
-  const ctxT = document.getElementById('chartTaps').getContext('2d');
-  chartUsers = new Chart(ctxU, { type:'line', data:{labels:[],datasets:[{label:'New users',data:[],fill:true,backgroundColor:'rgba(0,229,168,0.12)',borderColor:'#00e5a8'}]}, options:{responsive:true} });
-  chartTaps  = new Chart(ctxT, { type:'bar', data:{labels:[],datasets:[{label:'Taps',data:[],backgroundColor:'rgba(0,229,168,0.18)',borderColor:'#00e5a8'}]}, options:{responsive:true} });
-}
-initCharts();
-
-/* ---------- Realtime listeners (attach after login) ---------- */
-let allUsersCache = {};
-function attachRealtimeListeners(){
-  if (!window.isAdmin) return;
-  // users snapshot (listen once then watch)
-  usersRef.on('value', snap=>{
-    const data = snap.val() || {};
-    allUsersCache = data;
-    // stats
-    const usersCount = Object.keys(data).length;
-    statUsers.textContent = usersCount;
-    let totalBal = 0, activeToday = 0;
-    const now = Date.now();
-    Object.values(data).forEach(u=>{
-      totalBal += Number(u.balance||0);
-      // activeToday heuristic: lastUpdated within 24h
-      if ((u.updatedAt || 0) > (now - 1000*60*60*24)) activeToday++;
-    });
-    statBalance.textContent = totalBal;
-    statActive.textContent = activeToday;
-    // top 10
-    const arr = Object.values(data).sort((a,b)=> (Number(b.balance||0) - Number(a.balance||0)));
-    topList.innerHTML = '';
-    arr.slice(0,10).forEach((u,i)=> topList.appendChild(Object.assign(document.createElement('li'), {textContent:`${i+1}. ${u.username||u.playerId} — ${u.balance||0} TOK`})));
-    // update users table if visible
-    renderUsersTable(Object.values(data));
-  });
-
-  // loot stats
-  lootRef.on('value', snap=>{
-    const arr = [];
-    snap.forEach(s=>arr.push(s.val()));
-    // todays ad rewards count
-    const today = new Date(); today.setHours(0,0,0,0);
-    const countToday = arr.filter(x=> (x.ts||0) >= today.getTime()).length;
-    statAds.textContent = countToday;
-    renderLoot(arr.reverse());
-  });
-
-  // missions and ads
-  missionsRef.on('value', snap=>{
-    renderMissions(snap.val()||{});
-  });
-  adsRef.on('value', snap=>{
-    renderAds(snap.val()||{});
-  });
-
-  // analytics: build last 30 days from playHistory or users createdAt if playHistory not present
-  // We'll sample users createdAt as "new users" metric and taps aggregated from lootHistory tapping events if present.
-  buildAnalytics();
-}
-
-/* ---------- Users table ---------- */
-const usersTableBody = document.querySelector('#usersTable tbody');
-function renderUsersTable(usersArray){
-  if (!Array.isArray(usersArray)) usersArray = Object.values(usersArray || {});
-  const filter = document.getElementById('filterInput').value.toLowerCase();
-  const banFilter = document.getElementById('banFilter').value;
-  const filtered = usersArray.filter(u=>{
-    if (!u) return false;
-    if (filter){
-      const found = (u.username||'').toLowerCase().includes(filter) || (u.playerId||'').toLowerCase().includes(filter);
-      if (!found) return false;
-    }
-    if (banFilter === 'banned' && !u.banned) return false;
-    if (banFilter === 'active' && u.banned) return false;
-    return true;
-  });
-  usersTableBody.innerHTML = '';
-  filtered.slice(0,500).forEach(u=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="min-width:150px">${u.playerId || ''}</td>
-                    <td>${u.username || ''}</td>
-                    <td>${u.score||0}</td>
-                    <td>${u.balance||0}</td>
-                    <td>${u.totalTaps||0}</td>
-                    <td></td>`;
-    const actionsTd = tr.querySelector('td:last-child');
-    // Ban/unban
-    const banBtn = document.createElement('button'); banBtn.className='small'; banBtn.textContent = u.banned ? 'Unban' : 'Ban';
-    banBtn.onclick = async ()=>{
-      const confirmMsg = u.banned ? 'Unban user?' : 'Ban user?';
-      if (!confirm(confirmMsg)) return;
-      await usersRef.child(u.playerId).update({ banned: !!(!u.banned ? true : false), updatedAt: Date.now() });
-      alert('Updated ban status');
-    };
-    actionsTd.appendChild(banBtn);
-    // Edit balance
-    const editBtn = document.createElement('button'); editBtn.className='small'; editBtn.style.marginLeft='6px'; editBtn.textContent='Edit';
-    editBtn.onclick = async ()=>{
-      const val = prompt('Enter new balance (number)', String(u.balance || 0));
-      if (val === null) return;
-      const num = Number(val);
-      if (isNaN(num)) return alert('Invalid number');
-      // use transaction to avoid race
-      await usersRef.child(u.playerId).child('balance').transaction(curr => num);
-      await usersRef.child(u.playerId).update({ updatedAt: Date.now() });
-      alert('Balance updated');
-    };
-    actionsTd.appendChild(editBtn);
-    // Force award (give tokens)
-    const giveBtn = document.createElement('button'); giveBtn.className='small'; giveBtn.style.marginLeft='6px'; giveBtn.textContent='Give';
-    giveBtn.onclick = async ()=>{
-      const val = prompt('Amount to give', '50');
-      if (val === null) return;
-      const amt = Number(val);
-      if (isNaN(amt)) return alert('Invalid number');
-      await usersRef.child(u.playerId).child('balance').transaction(curr => (Number(curr||0)+amt));
-      await lootRef.push({ playerId: u.playerId, amount: amt, reason: 'admin_grant', ts: Date.now() });
-      alert('Given ' + amt + ' TOK');
-    };
-    actionsTd.appendChild(giveBtn);
-    usersTableBody.appendChild(tr);
-  });
-}
-
-/* load button */
-document.getElementById('loadUsers').onclick = ()=> renderUsersTable(Object.values(allUsersCache));
-
-/* search button */
-document.getElementById('searchBtn').onclick = ()=> {
-  const q = document.getElementById('globalSearch').value.trim();
-  if (!q) return alert('Enter search query');
-  // try to find user by id or username
-  usersRef.orderByChild('username').equalTo(q).once('value').then(snap=>{
-    if (snap.exists()){
-      const val = snap.val();
-      renderUsersTable(Object.values(val));
+    if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
+        loginPage.style.display = "none";
+        adminPanel.style.display = "block";
+        loadAll();
     } else {
-      // try by id
-      usersRef.child(q).get().then(s=>{
-        if (s.exists()) renderUsersTable([s.val()]);
-        else alert('No user found');
-      });
+        loginError.innerText = "Invalid Credentials";
     }
-  });
-};
-
-/* ---------- Recent loot ---------- */
-function renderLoot(arr){
-  const wrap = document.getElementById('lootWrap');
-  wrap.innerHTML = '';
-  arr.forEach(l=>{
-    const el = document.createElement('div'); el.className='card'; el.style.marginBottom='8px';
-    el.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${l.playerId}</strong> • ${l.reason}</div><div>${new Date(l.ts).toLocaleString()}</div></div><div style="margin-top:8px">Amount: <strong>${l.amount}</strong></div>`;
-    const revoke = document.createElement('button'); revoke.className='small danger'; revoke.style.marginTop='8px'; revoke.textContent='Revoke';
-    revoke.onclick = async ()=>{
-      if (!confirm('Revoke this loot? (will subtract from user balance)')) return;
-      // subtract
-      await usersRef.child(l.playerId).child('balance').transaction(curr => Math.max(0, Number(curr||0)-Number(l.amount||0)));
-      // optional: move to revoked entry or mark item
-      await lootRef.push({ ...l, revoked:true, ts: Date.now() });
-      alert('Revoked');
-    };
-    el.appendChild(revoke);
-    wrap.appendChild(el);
-  });
-}
-document.getElementById('refreshLoot').onclick = ()=> lootRef.once('value').then(snap=>{ const arr=[]; snap.forEach(it=>arr.push(it.val())); renderLoot(arr.reverse()); });
-
-/* ---------- Missions editor ---------- */
-document.getElementById('addMissionBtn').onclick = async ()=>{
-  const title = document.getElementById('newMissionTitle').value.trim();
-  const reward = Number(document.getElementById('newMissionReward').value || 0);
-  if (!title) return alert('Title required');
-  const id = 'm_' + Date.now().toString(36).slice(4);
-  await missionsRef.child(id).set({ id, title, reward, createdAt: Date.now() });
-  document.getElementById('newMissionTitle').value=''; document.getElementById('newMissionReward').value='';
-  alert('Mission added');
-};
-function renderMissions(obj){
-  const wrap = document.getElementById('missionsList');
-  wrap.innerHTML = '';
-  Object.values(obj || {}).forEach(m=>{
-    const el = document.createElement('div'); el.className='card'; el.style.marginBottom='8px';
-    el.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${m.title}</strong><div class="muted">Reward: ${m.reward} TOK</div></div><div><button class="small" data-id="${m.id}">Edit</button> <button class="small danger" data-del="${m.id}">Delete</button></div></div>`;
-    wrap.appendChild(el);
-  });
-  // attach events
-  wrap.querySelectorAll('button[data-id]').forEach(b=>{
-    b.onclick = ()=>{
-      const id = b.dataset.id;
-      const newTitle = prompt('New title');
-      if (!newTitle) return;
-      const newReward = Number(prompt('New reward', '50') || 0);
-      missionsRef.child(id).update({ title:newTitle, reward:newReward });
-    };
-  });
-  wrap.querySelectorAll('button[data-del]').forEach(b=>{
-    b.onclick = ()=>{
-      const id = b.dataset.del;
-      if (!confirm('Delete mission?')) return;
-      missionsRef.child(id).remove();
-    };
-  });
 }
 
-/* ---------- Ads manager ---------- */
-document.getElementById('addAdBtn').onclick = async ()=>{
-  const title = document.getElementById('adTitle').value.trim();
-  const reward = Number(document.getElementById('adReward').value || 0);
-  if (!title) return alert('Title required');
-  const id = 'ad_' + Date.now().toString(36).slice(4);
-  await adsRef.child(id).set({ id, title, reward, active:true, createdAt: Date.now() });
-  document.getElementById('adTitle').value=''; document.getElementById('adReward').value='';
-  alert('Ad created');
-};
-function renderAds(obj){
-  const wrap = document.getElementById('adsList');
-  wrap.innerHTML = '';
-  Object.values(obj || {}).forEach(a=>{
-    const el = document.createElement('div'); el.className='card'; el.style.marginBottom='8px';
-    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${a.title}</strong><div class="muted">Reward ${a.reward} TOK</div></div><div><button class="small" data-toggle="${a.id}">${a.active? 'Disable' : 'Enable'}</button> <button class="small danger" data-del="${a.id}">Delete</button></div></div>`;
-    wrap.appendChild(el);
-  });
-  wrap.querySelectorAll('button[data-toggle]').forEach(b=>{
-    b.onclick = ()=>{
-      const id = b.dataset.toggle;
-      adsRef.child(id).get().then(s=>{
-        const curr = s.val() || {};
-        adsRef.child(id).update({ active: !curr.active });
-      });
-    };
-  });
-  wrap.querySelectorAll('button[data-del]').forEach(b=>{
-    b.onclick = ()=>{
-      const id = b.dataset.del;
-      if (!confirm('Delete ad?')) return;
-      adsRef.child(id).remove();
-    };
-  });
+/* --------------------------------------------------
+   DARK MODE
+-------------------------------------------------- */
+function toggleDark() {
+    if (document.body.style.background === "white") {
+        document.body.style.background = "#0d1117";
+        document.body.style.color = "white";
+    } else {
+        document.body.style.background = "white";
+        document.body.style.color = "black";
+    }
 }
 
-/* ---------- Analytics builder (simple) ---------- */
-async function buildAnalytics(){
-  // Build last 30 days labels
-  const days = 30;
-  const labels = [];
-  const now = new Date();
-  for (let i = days-1; i >= 0; i--){
-    const d = new Date(); d.setDate(now.getDate() - i);
-    labels.push(d.toISOString().slice(0,10));
-  }
-  // Users per day from users.createdAt
-  const snap = await usersRef.once('value');
-  const users = snap.val() || {};
-  const usersPerDay = labels.map(l => 0);
-  Object.values(users).forEach(u=>{
-    const ts = u.createdAt || 0;
-    if (!ts) return;
-    const d = new Date(ts).toISOString().slice(0,10);
-    const idx = labels.indexOf(d);
-    if (idx !== -1) usersPerDay[idx]++;
-  });
-  chartUsers.data.labels = labels;
-  chartUsers.data.datasets[0].data = usersPerDay;
-  chartUsers.update();
+/* --------------------------------------------------
+   FIREBASE CONFIG
+-------------------------------------------------- */
+const firebaseConfig = {
+    apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
+    authDomain: "comhashgame.firebaseapp.com",
+    databaseURL: "https://comhashgame-default-rtdb.firebaseio.com",
+    projectId: "comhashgame",
+    storageBucket: "comhashgame.firebasestorage.app",
+    messagingSenderId: "392187080052",
+    appId: "1:392187080052:web:3e31391442ca1315dc1021",
+    measurementId: "G-0YWTXYJ7RN"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  // taps per day - aggregate totalTaps differences is unreliable; we'll approximate using lootHistory tapping events if present
-  const lootSnap = await lootRef.once('value');
-  const loot = []; lootSnap.forEach(s=>loot.push(s.val()));
-  const tapsPerDay = labels.map(_ => 0);
-  loot.forEach(l=>{
-    const d = new Date(l.ts || 0).toISOString().slice(0,10);
-    const idx = labels.indexOf(d);
-    if (idx !== -1) tapsPerDay[idx] += Number(l.amount || 0);
-  });
-  chartTaps.data.labels = labels;
-  chartTaps.data.datasets[0].data = tapsPerDay;
-  chartTaps.update();
+/* --------------------------------------------------
+   SECTION SWITCHER
+-------------------------------------------------- */
+function show(sec) {
+    document.querySelectorAll(".section").forEach(s => s.style.display = "none");
+    document.getElementById(sec).style.display = "block";
 }
 
-/* ---------- Settings: save admin pwd locally ---------- */
-document.getElementById('setPwdBtn').onclick = ()=>{
-  const v = document.getElementById('adminPassword').value;
-  if (!v) return alert('Enter a password');
-  localStorage.setItem('admin_pwd', v);
-  alert('Saved locally. Next login uses this password.');
-};
+/* --------------------------------------------------
+   USERS
+-------------------------------------------------- */
+function searchUser() {
+    let id = searchID.value;
+    if (!id) return alert("Enter ID");
 
-/* ---------- Logout ---------- */
-document.getElementById('logoutBtn').onclick = ()=>{
-  if (!confirm('Logout admin?')) return;
-  window.isAdmin = false;
-  adminUser.textContent = '—';
-  showLogin();
-};
+    db.ref("users/" + id).once("value", snap => {
+        if (!snap.exists()) {
+            userResult.innerHTML = "<p>No user found</p>";
+            return;
+        }
 
-/* ---------- attach listeners after login (if already admin) ---------- */
-if (window.isAdmin) attachRealtimeListeners();
+        let u = snap.val();
 
+        userResult.innerHTML = `
+            <div class='card'>
+                <p><b>ID:</b> ${id}</p>
+                <p><b>Balance:</b> ${u.balance || 0}</p>
+                <p><b>Banned:</b> ${u.banned ? "YES" : "NO"}</p>
+
+                <input id="newBal" type="number" placeholder="New Balance">
+                <button onclick="updateBalance('${id}')">Update Balance</button>
+
+                <button class="red" onclick="banUser('${id}')">Ban</button>
+                <button onclick="unbanUser('${id}')">Unban</button>
+            </div>
+        `;
+    });
+}
+
+function updateBalance(id) {
+    db.ref("users/" + id).update({
+        balance: Number(newBal.value)
+    });
+    alert("Balance Updated");
+}
+
+function banUser(id) {
+    db.ref("users/" + id).update({ banned: true });
+    alert("User Banned");
+}
+
+function unbanUser(id) {
+    db.ref("users/" + id).update({ banned: false });
+    alert("User Unbanned");
+}
+
+/* --------------------------------------------------
+   MISSIONS
+-------------------------------------------------- */
+function addMission() {
+    let name = missionName.value;
+    let reward = Number(missionReward.value);
+
+    db.ref("missions").push({ name, reward });
+    alert("Mission Added");
+}
+
+function loadMissions() {
+    db.ref("missions").on("value", snap => {
+        let html = "";
+        snap.forEach(m => {
+            let d = m.val();
+            html += `
+                <div class='card'>
+                    <p><b>${d.name}</b></p>
+                    <p>Reward: ${d.reward}</p>
+                    <button class="red" onclick="delMission('${m.key}')">Delete</button>
+                </div>
+            `;
+        });
+        missionsList.innerHTML = html;
+    });
+}
+
+function delMission(id) {
+    db.ref("missions/" + id).remove();
+}
+
+/* --------------------------------------------------
+   RECENT LOOT
+-------------------------------------------------- */
+function loadLoot() {
+    db.ref("loot").limitToLast(100).on("value", snap => {
+        let html = "";
+        snap.forEach(l => {
+            let d = l.val();
+            html += `
+                <div class='card'>
+                    <p><b>User:</b> ${d.user}</p>
+                    <p><b>Amount:</b> ${d.amount}</p>
+                    <p>${new Date(d.time).toLocaleString()}</p>
+                </div>
+            `;
+        });
+        lootList.innerHTML = html;
+    });
+}
+
+/* --------------------------------------------------
+   ADS MANAGER
+-------------------------------------------------- */
+function saveZone() {
+    db.ref("ads").update({
+        zone: zoneID.value
+    });
+    alert("Zone Updated");
+}
+
+function loadZone() {
+    db.ref("ads/zone").on("value", snap => {
+        currentZone.innerText = snap.val() || "Not Set";
+    });
+}
+
+/* --------------------------------------------------
+   CHARTS
+-------------------------------------------------- */
+let usersChart, earnChart;
+
+function loadCharts() {
+    usersChart = new Chart(document.getElementById("usersChart"), {
+        type: "line",
+        data: { labels: [], datasets: [{ label: "Users", data: [] }] }
+    });
+
+    earnChart = new Chart(document.getElementById("earnChart"), {
+        type: "line",
+        data: { labels: [], datasets: [{ label: "Earnings", data: [] }] }
+    });
+
+    db.ref("stats/users").on("value", snap => {
+        let d = snap.val() || {};
+        usersChart.data.labels = Object.keys(d);
+        usersChart.data.datasets[0].data = Object.values(d);
+        usersChart.update();
+    });
+
+    db.ref("stats/earn").on("value", snap => {
+        let d = snap.val() || {};
+        earnChart.data.labels = Object.keys(d);
+        earnChart.data.datasets[0].data = Object.values(d);
+        earnChart.update();
+    });
+}
+
+/* --------------------------------------------------
+   LOAD ALL
+-------------------------------------------------- */
+function loadAll() {
+    loadMissions();
+    loadLoot();
+    loadZone();
+    loadCharts();
+}
 </script>
+
 </body>
 </html>
