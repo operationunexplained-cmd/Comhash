@@ -1,99 +1,107 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Hacker Tapper — ComHash (Single File)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hacker Tapper — ComHash (Telegram Login)</title>
 
-<!-- Telegram WebApp -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Telegram WebApp -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- Firebase Realtime Database (compat) -->
-<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+  <!-- Firebase Realtime Database (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
 
-<!-- MoneyTag SDK (real) -->
-<script src="//libtl.com/sdk.js" data-zone="10199103" data-sdk="show_10199103"></script>
+  <!-- MoneyTag SDK (real) -->
+  <script src="//libtl.com/sdk.js" data-zone="10199103" data-sdk="show_10199103"></script>
 
-<style>
-:root{--bg:#020610;--card:#071425;--accent:#00e5a8;--muted:#93b6c6}
-html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#020610);color:#d8f6f0}
-.wrap{max-width:920px;margin:12px auto;padding:14px}
-.header{display:flex;justify-content:space-between;align-items:center}
-.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-.grid{display:grid;grid-template-columns:1fr 360px;gap:12px;margin-top:12px}
-@media(max-width:780px){.grid{grid-template-columns:1fr}}
-.hud{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
-.stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;min-width:0}
-#tapBtn{width:100%;padding:16px;border-radius:12px;background:linear-gradient(180deg,#023c32,#01513f);border:0;color:#fff;font-weight:800;font-size:18px}
-.small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
-#hackAnim{height:140px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:auto;font-family:monospace}
-.lb{max-height:420px;overflow:auto}
-.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
-.closeX{position:absolute;right:8px;top:6px;cursor:pointer;color:var(--muted)}
-#glitch{position:fixed;inset:0;display:none;z-index:9999;pointer-events:none}
-.glitchLayer{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));mix-blend-mode:screen;filter:contrast(1.2) saturate(1.2);animation:glitchAnim .8s ease-in-out}
-@keyframes glitchAnim{0%{transform:translateX(0)}50%{transform:translateX(6px) skewX(-2deg)}100%{transform:translateX(0)}}
-.muted{color:var(--muted);font-size:13px}
-.pending{color:#ffd166;font-weight:700}
-</style>
+  <style>
+    :root{--bg:#020610;--card:#071425;--accent:#00e5a8;--muted:#93b6c6}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#020610);color:#d8f6f0}
+    .wrap{max-width:920px;margin:12px auto;padding:14px}
+    .header{display:flex;justify-content:space-between;align-items:center}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:12px;margin-top:12px}
+    @media(max-width:780px){.grid{grid-template-columns:1fr}}
+    .hud{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
+    .stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;min-width:0}
+    #tapBtn{width:100%;padding:16px;border-radius:12px;background:linear-gradient(180deg,#023c32,#01513f);border:0;color:#fff;font-weight:800;font-size:18px}
+    .small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
+    #hackAnim{height:140px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:auto;font-family:monospace}
+    .lb{max-height:420px;overflow:auto}
+    .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
+    .closeX{position:absolute;right:8px;top:6px;cursor:pointer;color:var(--muted)}
+    #glitch{position:fixed;inset:0;display:none;z-index:9999;pointer-events:none}
+    .glitchLayer{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));mix-blend-mode:screen;filter:contrast(1.2) saturate(1.2);animation:glitchAnim .8s ease-in-out}
+    @keyframes glitchAnim{0%{transform:translateX(0)}50%{transform:translateX(6px) skewX(-2deg)}100%{transform:translateX(0)}}
+    .muted{color:var(--muted);font-size:13px}
+    .pending{color:#ffd166;font-weight:700}
+    .overlayNotice{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:20000;padding:20px;color:#fff}
+    .noticeBox{background:#071021;padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);max-width:760px}
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="header">
-    <div>
-      <h2 style="margin:.2rem 0">💻 Hacker Tapper — ComHash</h2>
-      <div class="muted">Tap, watch, invite, win — inside Telegram</div>
-    </div>
-    <div id="playerTag" class="muted">Loading...</div>
-  </div>
-
-  <div class="card grid">
-    <main id="left">
-      <div class="hud">
-        <div class="stat">Balance: <strong id="balance">0</strong> TOK</div>
-        <div class="stat">Score: <strong id="score">0</strong></div>
-        <div class="stat">Taps: <strong id="taps">0</strong></div>
-      </div>
-
-      <div id="hackAnim" class="card" aria-live="polite"></div>
-
-      <button id="tapBtn">TAP TO INJECT</button>
-
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="small" id="watchAdBtn">Watch Ad (reward)</button>
-        <button class="small" id="missionsBtn">Missions</button>
-        <button class="small" id="inviteBtn">Invite</button>
-      </div>
-
-      <div style="margin-top:12px" class="muted">Referral: <span id="refLink">-</span></div>
-      <div style="margin-top:8px"><span id="adStatus" class="muted"></span></div>
-    </main>
-
-    <aside id="right">
+  <div class="wrap">
+    <div class="header">
       <div>
-        <h3 style="margin:0">Leaderboard (Top 100)</h3>
-        <div class="card lb" id="leaderboard"><ol id="lbList"></ol></div>
-
-        <div style="margin-top:12px"><strong>Booster:</strong> <span id="boosterInfo">None</span></div>
-
-        <div style="margin-top:12px"><strong>Recent Loot:</strong>
-          <div id="lootList" class="muted" style="max-height:120px;overflow:auto"></div>
-        </div>
+        <h2 style="margin:.2rem 0">💻 Hacker Tapper — ComHash</h2>
+        <div class="muted">Tap, watch, invite, win — inside Telegram</div>
       </div>
-    </aside>
-  </div>
+      <div id="playerTag" class="muted">Loading...</div>
+    </div>
 
-  <div id="glitch"><div class="glitchLayer"></div></div>
-  <div id="modalRoot"></div>
-  <div class="muted" style="margin-top:10px">Host over HTTPS and open inside Telegram WebApp for best experience.</div>
-</div>
+    <div class="card grid" id="gameArea" style="display:none">
+      <main id="left">
+        <div class="hud">
+          <div class="stat">Balance: <strong id="balance">0</strong> TOK</div>
+          <div class="stat">Score: <strong id="score">0</strong></div>
+          <div class="stat">Taps: <strong id="taps">0</strong></div>
+        </div>
+
+        <div id="hackAnim" class="card" aria-live="polite"></div>
+
+        <button id="tapBtn">TAP TO INJECT</button>
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="small" id="watchAdBtn">Watch Ad (reward)</button>
+          <button class="small" id="missionsBtn">Missions</button>
+          <button class="small" id="inviteBtn">Invite</button>
+        </div>
+
+        <div style="margin-top:12px" class="muted">Referral: <span id="refLink">-</span></div>
+        <div style="margin-top:8px"><span id="adStatus" class="muted"></span></div>
+      </main>
+
+      <aside id="right">
+        <div>
+          <h3 style="margin:0">Leaderboard (Top 100)</h3>
+          <div class="card lb" id="leaderboard"><ol id="lbList"></ol></div>
+
+          <div style="margin-top:12px"><strong>Booster:</strong> <span id="boosterInfo">None</span></div>
+
+          <div style="margin-top:12px"><strong>Recent Loot:</strong>
+            <div id="lootList" class="muted" style="max-height:120px;overflow:auto"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Notice when not inside Telegram or no tg user -->
+    <div id="tgNotice" class="overlayNotice" style="display:none">
+      <div class="noticeBox">
+        <h3 style="margin:0 0 8px 0">Telegram login required</h3>
+        <div class="muted">This game requires Telegram Mini App identity (to avoid duplicate users). Open this page inside Telegram (tap the bot's button) to play. If you're testing in a browser, use Option B (guest mode).</div>
+        <div style="margin-top:12px"><button id="reloadBtn" class="small">Reload</button></div>
+      </div>
+    </div>
+
+    <div id="glitch"><div class="glitchLayer"></div></div>
+    <div id="modalRoot"></div>
+    <div class="muted" style="margin-top:10px">Host over HTTPS and open inside Telegram WebApp for best experience.</div>
+  </div>
 
 <script>
-/* ------------------- CONFIG -------------------
-   Replace FIREBASE_CONFIG with your own if needed.
-   MoneyTag SDK is already included via script tag above.
-------------------------------------------------*/
+/* ================= CONFIG ================= */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
   authDomain: "comhashgame.firebaseapp.com",
@@ -103,40 +111,75 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "392187080052",
   appId: "1:392187080052:web:3e31391442ca1315dc1021"
 };
-const MONEYTAG_FUNC = 'show_10199103'; // function name created by the MoneyTag script
-/* ---------------------------------------------- */
+const MONEYTAG_FUNC = 'show_10199103';
+/* ========================================== */
 
-function $id(id){ return document.getElementById(id); }
-function createNode(tag, attrs={}){ const el=document.createElement(tag); Object.assign(el, attrs); return el; }
+/* ---------- helpers ---------- */
+const $id = id => document.getElementById(id);
+const createNode = (t, attrs={}) => { const el = document.createElement(t); Object.assign(el, attrs); return el; };
+function showModal(title, html){
+  const m = createNode('div'); m.className='modal';
+  m.innerHTML = `<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`;
+  $id('modalRoot').appendChild(m);
+  m.querySelector('.closeX').onclick = ()=>m.remove();
+  return m;
+}
+function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; setTimeout(()=>g.style.display='none', ms); }
+function pushLine(text){ const el = createNode('div'); el.textContent = text; $id('hackAnim').appendChild(el); while($id('hackAnim').children.length>8) $id('hackAnim').removeChild($id('hackAnim').firstChild); }
 
-/* ----------------- Initialize Firebase RTDB ----------------- */
+/* ---------- Init Firebase ---------- */
 firebase.initializeApp(FIREBASE_CONFIG);
 const rdb = firebase.database();
 const usersRef = rdb.ref('users');
 const lootRef = rdb.ref('lootHistory');
 
-/* ----------------- Telegram WebApp ----------------- */
+/* ---------- Telegram identity (STRICT A) ---------- */
 const tg = window.Telegram?.WebApp || null;
 try { tg?.expand?.(); } catch(e){}
-const tgUser = tg?.initDataUnsafe?.user || {};
-const playerId = String(tgUser?.id || ('guest_' + Math.random().toString(36).slice(2,9)));
-const playerName = (tgUser?.first_name) ? tgUser.first_name : 'Guest';
+const tgInit = tg?.initDataUnsafe || null;
+const tgUser = tgInit?.user || null;
+
+// If no telegram user — block and show notice (strict A)
+if (!tgUser || !tgUser.id) {
+  $id('tgNotice').style.display = 'flex';
+  $id('reloadBtn').onclick = ()=> location.reload();
+  // Ensure game area hidden
+  $id('gameArea').style.display = 'none';
+  // stop here — strict mode requires Telegram
+  console.warn('Telegram user not found. Open inside Telegram Mini App.');
+  throw new Error('Telegram user required (Option A)');
+}
+
+// Build a unique playerId using Telegram user id
+const playerId = 'tg_' + String(tgUser.id);
+const playerName = (tgUser.first_name || ('tg_' + String(tgUser.id)));
+
+// show tag
 $id('playerTag').textContent = `${playerName} • ${playerId}`;
 
-/* referral (optional) */
-const startParam = tg?.initDataUnsafe?.start_param || null;
-let referrerId = (startParam && startParam.startsWith('ref_')) ? startParam.replace('ref_','') : null;
-
-/* ----------------- State ----------------- */
-let balance = Number(localStorage.getItem('ht_balance') || 0);
-let score = Number(localStorage.getItem('ht_score') || 0);
-let totalTaps = Number(localStorage.getItem('ht_totalTaps') || 0);
-let tapBuffer = 0;
+/* ---------- Local state ---------- */
+let balance = 0, score = 0, totalTaps = 0, tapBuffer = 0;
 let booster = { multiplier:1, expiresAt:0 };
 let recentLoot = [];
-let lastAdPending = null;
 
-/* ----------------- UI Helpers ----------------- */
+/* When switching players on same device, clear old local storage keys to avoid cross-user bleed */
+(function ensureLocalIdentity(){
+  const storedPid = localStorage.getItem('ht_player_id');
+  if (storedPid !== playerId) {
+    // new Telegram user on this device — clear prior ephemeral keys
+    localStorage.removeItem('ht_balance');
+    localStorage.removeItem('ht_score');
+    localStorage.removeItem('ht_totalTaps');
+    localStorage.setItem('ht_player_id', playerId);
+  }
+})();
+
+/* Load any local cached values (will be overridden by authoritative DB on sync) */
+balance = Number(localStorage.getItem('ht_balance') || 0);
+score = Number(localStorage.getItem('ht_score') || 0);
+totalTaps = Number(localStorage.getItem('ht_totalTaps') || 0);
+
+/* Render UI */
 function render(){
   $id('balance').textContent = balance;
   $id('score').textContent = score;
@@ -145,56 +188,100 @@ function render(){
   $id('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
   $id('lootList').innerHTML = recentLoot.slice().reverse().map(l=>`<div>${new Date(l.ts).toLocaleTimeString()}: +${l.amount} TOK (${l.reason})</div>`).join('');
 }
-render();
 
-function pushLine(text){
-  const el = createNode('div'); el.textContent = text;
-  $id('hackAnim').appendChild(el);
-  while($id('hackAnim').children.length > 8) $id('hackAnim').removeChild($id('hackAnim').firstChild);
-}
-function showModal(title, html){ const m=createNode('div'); m.className='modal'; m.innerHTML=`<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`; $id('modalRoot').appendChild(m); m.querySelector('.closeX').onclick = ()=>m.remove(); return m; }
-function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; setTimeout(()=>g.style.display='none', ms); }
-
-/* ----------------- Ensure user exists in RTDB ----------------- */
-async function ensureUser(){
-  try{
+/* ---------- Ensure user exists and sync ---------- */
+async function ensureUserAndSync(){
+  try {
     const snap = await usersRef.child(playerId).get();
     if (!snap.exists()){
+      // create clean user object under unique tele id
       await usersRef.child(playerId).set({
-        playerId, username: playerName, balance: 0, score: 0, totalTaps: 0, createdAt: Date.now(), referrer: referrerId || null
+        playerId,
+        username: playerName,
+        balance: 0,
+        score: 0,
+        totalTaps: 0,
+        createdAt: Date.now(),
+        referrer: (tgInit?.start_param && tgInit.start_param.startsWith('ref_')) ? tgInit.start_param.replace('ref_','') : null
       });
-      if (referrerId) await applyReferral(referrerId);
     } else {
       const d = snap.val();
-      balance = Number(d.balance || balance);
-      score = Number(d.score || score);
-      totalTaps = Number(d.totalTaps || totalTaps);
+      // sync authoritative server values into client
+      balance = Number(d.balance || 0);
+      score = Number(d.score || 0);
+      totalTaps = Number(d.totalTaps || 0);
       if (d.booster && d.booster.expiresAt && Date.now() < d.booster.expiresAt) booster = d.booster;
-      // load recent loot
-      const lootSnap = await lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(6).get();
-      recentLoot = []; lootSnap.forEach(s=>recentLoot.push(s.val()));
     }
     render();
-  } catch(e){ console.error('ensureUser', e); }
+    // subscribe to user's node for live updates (authoritative)
+    usersRef.child(playerId).on('value', snap => {
+      if (!snap.exists()) return;
+      const d = snap.val();
+      balance = Number(d.balance || 0);
+      score = Number(d.score || 0);
+      totalTaps = Number(d.totalTaps || 0);
+      if (d.booster && d.booster.expiresAt && Date.now() < d.booster.expiresAt) booster = d.booster;
+      render();
+      // also keep local caches
+      localStorage.setItem('ht_balance', String(balance));
+      localStorage.setItem('ht_score', String(score));
+      localStorage.setItem('ht_totalTaps', String(totalTaps));
+    });
+    // subscribe to recent loot for this user
+    lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(12).on('value', snap=>{
+      const arr = [];
+      snap.forEach(s => arr.push(s.val()));
+      arr.sort((a,b)=>b.ts - a.ts);
+      recentLoot = arr;
+      render();
+    });
+    // show the game area now that user is synced
+    $id('gameArea').style.display = 'grid';
+  } catch (e) {
+    console.error('ensureUserAndSync err', e);
+  }
 }
-async function applyReferral(refId){
-  try{
-    const mySnap = await usersRef.child(playerId).get();
-    if (!mySnap.exists) return;
-    if (mySnap.val().referral_claimed) return;
-    await usersRef.child(playerId).update({ referral_claimed:true });
-    balance += 50; await usersRef.child(playerId).update({ balance });
-    const refSnap = await usersRef.child(refId).get();
-    if (refSnap.exists()){
-      const prev = Number(refSnap.val().balance || 0);
-      await usersRef.child(refId).update({ balance: prev + 100 });
-    }
-    render();
-  } catch(e){ console.error('applyReferral', e); }
-}
-ensureUser();
+ensureUserAndSync();
 
-/* ----------------- Persist local -> RTDB ----------------- */
+/* ---------- leaderboard (Top 100 by balance) ---------- */
+usersRef.orderByChild('balance').limitToLast(100).on('value', snap=>{
+  const arr = [];
+  snap.forEach(s => { const v = s.val(); arr.push(v); });
+  arr.sort((a,b)=> Number(b.balance || 0) - Number(a.balance || 0));
+  $id('lbList').innerHTML = '';
+  arr.forEach((u,i)=>{
+    const li = createNode('li'); li.textContent = `${i+1}. ${u.username || u.playerId} — ${Number(u.balance||0)} TOK`;
+    $id('lbList').appendChild(li);
+  });
+});
+
+/* ---------- grant loot and booster helpers ---------- */
+async function grantLoot(amount, reason='event'){
+  // client-side immediate feedback
+  balance += amount;
+  recentLoot.push({ amount, reason, ts: Date.now() });
+  if (recentLoot.length > 12) recentLoot.shift();
+  render();
+  // write loot record and update user's balance in DB
+  try {
+    await lootRef.push({ playerId, amount, reason, ts: Date.now() });
+    await usersRef.child(playerId).transaction(curr => {
+      curr = curr || {};
+      curr.balance = Number(curr.balance || 0) + amount;
+      return curr;
+    });
+  } catch(e){ console.warn('grantLoot err', e); }
+}
+
+async function giveBooster(mult, durSeconds){
+  booster = { multiplier: mult, expiresAt: Date.now() + durSeconds * 1000 };
+  render();
+  try { await usersRef.child(playerId).update({ booster }); } catch(e){ console.warn('booster set err', e); }
+  setTimeout(()=>{ if (Date.now() >= booster.expiresAt){ booster = { multiplier:1, expiresAt:0 }; render(); } }, durSeconds*1000 + 200);
+}
+
+/* ---------- persist local -> db (batched) ---------- */
+let tapBuffer = 0;
 async function persist(force=false){
   localStorage.setItem('ht_balance', String(balance));
   localStorage.setItem('ht_score', String(score));
@@ -202,125 +289,64 @@ async function persist(force=false){
   if (tapBuffer >= 20 || force){
     tapBuffer = 0;
     try {
-      await usersRef.child(playerId).update({ balance, score, totalTaps, booster:(booster.multiplier>1?booster:null) });
-    } catch(e){ console.warn('persist error', e); }
+      // write atomic fields only
+      await usersRef.child(playerId).update({ balance, score, totalTaps, booster:(booster.multiplier>1?booster:null), updatedAt: Date.now() });
+    } catch(e){ console.warn('persist err', e); }
   }
 }
 setInterval(()=>persist(true), 15000);
 
-/* ----------------- Leaderboard Top 100 (real-time) ----------------- */
-/* RTDB trick: orderByChild('balance').limitToLast(100) gives last 100 by balance; we then reverse for descending */
-usersRef.orderByChild('balance').limitToLast(100).on('value', snap=>{
-  const arr = [];
-  snap.forEach(s => arr.push(s.val()));
-  arr.reverse();
-  $id('lbList').innerHTML = '';
-  arr.forEach((u,i)=>{
-    const li = createNode('li');
-    li.textContent = `${i+1}. ${u.username || u.playerId} — ${Number(u.balance || 0)} TOK`;
-    $id('lbList').appendChild(li);
-  });
-});
-
-/* ----------------- Grant loot & booster helpers ----------------- */
-async function grantLoot(amount, reason='event'){
-  // update client state for immediate feedback and write to db
-  balance += amount;
-  recentLoot.push({ amount, reason, ts: Date.now() });
-  if (recentLoot.length>12) recentLoot.shift();
-  render();
-  try {
-    await lootRef.push({ playerId, amount, reason, ts: Date.now() });
-    await usersRef.child(playerId).update({ balance });
-  } catch(e){ console.warn('grantLoot err', e); }
-}
-
-async function giveBooster(mult, durSeconds){
-  booster = { multiplier: mult, expiresAt: Date.now() + durSeconds*1000 };
-  try { await usersRef.child(playerId).update({ booster }); } catch(e){ console.warn('booster update', e); }
-  render();
-  setTimeout(()=>{ if (Date.now() >= booster.expiresAt){ booster = { multiplier:1, expiresAt:0 }; render(); } }, durSeconds*1000 + 200);
-}
-
-/* ----------------- MoneyTag ad flow (client-side reward) ----------------- */
+/* ---------- MoneyTag ad flow (integrated with SDK callbacks if available) ---------- */
 function injectMoneyTag(){
-  // SDK already included via script tag, but ensure presence
-  if (window[MONEYTAG_FUNC] && typeof window[MONEYTAG_FUNC] === 'function') {
-    console.log('MoneyTag SDK available');
-    return;
-  }
-  // Otherwise ensure we try to load (script tag already there normally)
-  const script = document.querySelector('script[data-sdk="show_10199103"]');
-  if (!script){
-    const s = createNode('script');
-    s.src = '//libtl.com/sdk.js';
-    s.dataset.zone = '10199103';
-    s.dataset.sdk = 'show_10199103';
-    s.onload = ()=>console.log('MoneyTag loaded');
-    s.onerror = ()=>console.warn('MoneyTag failed to load');
-    document.head.appendChild(s);
+  // usually already included by <script> tag; this ensures presence
+  const fn = window[MONEYTAG_FUNC];
+  if (typeof fn === 'function') return;
+  const s = document.querySelector('script[data-sdk="show_10199103"]');
+  if (!s){
+    const sc = createNode('script');
+    sc.src = '//libtl.com/sdk.js';
+    sc.dataset.zone = '10199103';
+    sc.dataset.sdk = 'show_10199103';
+    sc.onload = ()=> console.log('MoneyTag loaded');
+    sc.onerror = ()=> console.warn('MoneyTag failed');
+    document.head.appendChild(sc);
   }
 }
 injectMoneyTag();
 
-/* show MoneyTag ad. If MoneyTag supports object callbacks (onReward/onClose/onError) we'll use them.
-   Otherwise we call the function and ask user to confirm (test fallback). */
 async function showAdFlow(){
   const fn = window[MONEYTAG_FUNC];
   $id('adStatus').textContent = '';
   if (typeof fn === 'function'){
-    // If SDK supports callback signature, try passing callbacks.
+    // try call with callbacks (some SDK accept object)
     try {
       let rewarded = false;
-      // some MoneyTag versions accept an object with callbacks; try that first
-      try {
-        fn({
-          onReward: async () => {
-            rewarded = true;
-            // grant reward when SDK calls onReward
-            await grantLoot(50, 'ad_reward');
-            $id('adStatus').textContent = 'Ad reward granted.';
-          },
-          onClose: ()=> {
-            if (!rewarded) $id('adStatus').textContent = 'Ad closed (no reward).';
-          },
-          onError: (err)=> {
-            console.warn('MoneyTag SDK error', err);
-            $id('adStatus').textContent = 'Ad error.';
-          }
-        });
-        // If above didn't throw but callbacks may not fire immediately, return 'requested'
-        return 'requested';
-      } catch(e){
-        // SDK didn't accept callbacks — fallback to calling directly
-        console.log('MoneyTag call with callbacks failed - fallback', e);
-        fn(); // open ad UI
-        // Wait briefly and then request user confirmation (only fallback for testing)
-        $id('adStatus').innerHTML = '<span class="pending">Ad open — waiting for completion (confirm)...</span>';
-        // Wait 1.5s then prompt confirmation
-        await new Promise(r=>setTimeout(r, 1200));
-        const ok = confirm('Mark ad as watched? (only use for testing — real flow depends on SDK callbacks)');
-        if (ok){
-          await grantLoot(50, 'ad_reward_fallback');
-          $id('adStatus').textContent = 'Ad reward granted (fallback confirmed).';
-          return 'rewarded';
-        } else {
-          $id('adStatus').textContent = 'Ad skipped (fallback).';
-          return 'skipped';
-        }
-      }
-    } catch(err){
-      console.warn('showAdFlow error', err);
-      return 'skipped';
+      fn({
+        onReward: async ()=> {
+          rewarded = true;
+          await grantLoot(50,'ad_reward');
+          $id('adStatus').textContent = 'Ad reward granted.';
+        },
+        onClose: ()=> { if (!rewarded) $id('adStatus').textContent = 'Ad closed (no reward).'; },
+        onError: (err)=> { console.warn('MT error', err); $id('adStatus').textContent='Ad error'; }
+      });
+      return 'requested';
+    } catch(e){
+      // fallback: call function, then ask for confirmation (testing fallback only)
+      try { fn(); } catch(e2){ console.warn('moneytag call failed', e2); }
+      $id('adStatus').innerHTML = '<span class="pending">Ad open — waiting for completion (confirm)...</span>';
+      await new Promise(r=>setTimeout(r,1200));
+      const ok = confirm('Mark ad as watched? (testing fallback)');
+      if (ok){ await grantLoot(50,'ad_reward_fallback'); $id('adStatus').textContent='Ad reward granted (fallback).'; return 'rewarded'; }
+      $id('adStatus').textContent='Ad skipped (fallback).'; return 'skipped';
     }
   } else {
-    // SDK unavailable
-    alert('Ad SDK not loaded. Try again later.');
+    alert('Ad SDK not loaded. Try again inside Telegram.');
     return 'skipped';
   }
 }
 
-/* ----------------- Tap logic ----------------- */
+/* ---------- Tap logic ---------- */
 let sessionStart = 0, sessionTaps = 0;
 $id('tapBtn').addEventListener('click', async ()=>{
   if (!sessionStart) sessionStart = Date.now();
@@ -328,6 +354,7 @@ $id('tapBtn').addEventListener('click', async ()=>{
   const mult = (booster.multiplier>1 && booster.expiresAt > Date.now()) ? booster.multiplier : 1;
   const gain = Math.round(1 * mult + Math.random());
   score += gain;
+  // every 5 taps give small TOK
   if (totalTaps % 5 === 0){
     const tok = Math.max(1, Math.floor(gain/1));
     balance += tok;
@@ -339,77 +366,58 @@ $id('tapBtn').addEventListener('click', async ()=>{
   if (Math.random() < 0.03) showGlitch(700);
   if (Math.random() < 0.02){ const amt = Math.floor(Math.random()*50)+25; await grantLoot(amt,'random_drop'); }
   if (totalTaps % 30 === 0){
-    // on 30 taps, run stacked actions
     await onThirty();
     sessionStart = 0; sessionTaps = 0;
   }
+  tapBuffer++;
   if (tapBuffer >= 20) { await persist(); }
 });
 
-/* ----------------- 30-tap stacked actions ----------------- */
+/* ---------- 30 taps stacked ---------- */
 async function onThirty(){
   pushLine('!!! SYSTEM EVENT: 30 TAPS !!!');
   showGlitch(900);
-  // auto-show MoneyTag ad
-  const adResult = await showAdFlow();
-  if (adResult === 'rewarded' || adResult === 'requested'){
-    // if SDK will call back, booster will be applied when onReward fires.
-    // Give a small immediate booster for UX if requested type
+  const adRes = await showAdFlow();
+  if (adRes === 'rewarded' || adRes === 'requested'){
     await giveBooster(2, 20);
     const loot = Math.floor(Math.random()*150)+50;
     await grantLoot(loot,'30tap_bonus');
-    showModal('30-tap Reward', `Booster x2 (20s) +${loot} TOK (ad may verify via SDK).`);
+    showModal('30-tap Reward', `Booster x2 (20s) +${loot} TOK (ad verify via SDK).`);
   } else {
-    const small = 20; await grantLoot(small,'no_ad'); showModal('Notice', `No ad available — you got ${small} TOK.`);
+    await grantLoot(20,'30tap_noad');
+    showModal('Notice', 'No ad available — you got 20 TOK.');
   }
 }
 
-/* ----------------- Missions UI ----------------- */
-$id('missionsBtn').addEventListener('click', ()=>{
-  const m = showModal('Mission', 'Claim 100 TOK for testing mission.<br><div style="margin-top:10px"><button id="claimBtn" class="small">Claim 100 TOK</button></div>');
-  m.querySelector('#claimBtn').onclick = async ()=>{
-    await grantLoot(100,'mission_claim');
-    m.remove();
-  };
+/* ---------- Missions button ---------- */
+$id('missionsBtn').addEventListener('click', ()=> {
+  const m = showModal('Mission: Quick Claim', '<div>Claim 100 TOK for testing mission.</div><div style="margin-top:10px"><button id="claimBtn" class="small">Claim 100 TOK</button></div>');
+  m.querySelector('#claimBtn').onclick = async ()=> { await grantLoot(100,'mission_claim'); m.remove(); };
 });
 
-/* ----------------- Watch Ad button ----------------- */
-$id('watchAdBtn').addEventListener('click', async ()=>{
+/* ---------- Watch Ad button ---------- */
+$id('watchAdBtn').addEventListener('click', async ()=> {
   const res = await showAdFlow();
   if (res === 'requested') showModal('Ad started', 'Ad started — reward will be granted when SDK calls the reward callback.');
 });
 
-/* ----------------- Invite button ----------------- */
-$id('inviteBtn').addEventListener('click', ()=>{
+/* ---------- Invite ---------- */
+$id('inviteBtn').addEventListener('click', ()=> {
   const link = `https://t.me/comhash_bot?start=ref_${playerId}`;
   navigator.clipboard?.writeText(link).then(()=> alert('Referral link copied'), ()=> alert(link));
 });
 
-/* ----------------- Listen for DB changes to update UI (authoritative) ----------------- */
-/* Keep user's data in sync with server writes so if another client updates balance it shows here */
-usersRef.child(playerId).on('value', snap=>{
-  if (!snap.exists()) return;
-  const d = snap.val();
-  // update local state from DB authoritative values
-  balance = Number(d.balance || balance);
-  score = Number(d.score || score);
-  totalTaps = Number(d.totalTaps || totalTaps);
-  if (d.booster && d.booster.expiresAt && Date.now() < d.booster.expiresAt) booster = d.booster;
-  render();
-});
+/* ---------- Utility: Edit player from console (dev) ---------- */
+window.__debug_setScore = async function(newScore){
+  await usersRef.child(playerId).update({ score: Number(newScore) });
+};
 
-/* Also listen to recent loot updates for this user (optional) */
-lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(12).on('value', snap=>{
-  const arr = [];
-  snap.forEach(s => arr.push(s.val()));
-  arr.sort((a,b)=>b.ts-a.ts);
-  recentLoot = arr;
-  render();
-});
-
-/* ----------------- cleanup / persist ----------------- */
-window.addEventListener('beforeunload', ()=> persist(true));
+/* ---------- Persist on unload ---------- */
+window.addEventListener('beforeunload', ()=> persist(true) );
 setInterval(()=>{ if (tapBuffer>0) persist(); }, 5000);
+
+/* ---------- Initial render and show area ---------- */
+render();
 
 </script>
 </body>
