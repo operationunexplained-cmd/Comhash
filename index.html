@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Hacker Tapper — ComHash (Simple Green)</title>
+<title>Hacker Tapper — ComHash (Adexium Only)</title>
 
 <!-- Telegram WebApp -->
-<script src="https://telegram.org/js/telegram-web-app.js?56"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <!-- Firebase Realtime Database (compat) -->
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
 
-<!-- Adexium (interstitial) -->
+<!-- Adexium Interstitial -->
 <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
 
 <style>
-  /* Simple old UI, green theme */
+  /* Simple green theme (old UI) */
   :root{--bg:#f3fff6;--card:#ffffff;--accent:#0b8457;--muted:#4a6b59}
   html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#0b2f1f}
   .wrap{width:420px;margin:18px auto;background:var(--card);border-radius:12px;padding:16px;box-shadow:0 8px 30px rgba(7,24,18,0.08)}
@@ -76,8 +76,8 @@
   <div id="modalRoot"></div>
 
 <script>
-/* ========== CONFIG (your keys) ========== */
-/* Firebase config - using keys you provided earlier */
+/* ================= CONFIG ================= */
+/* Firebase config (your provided keys) */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
   authDomain: "comhashgame.firebaseapp.com",
@@ -89,72 +89,57 @@ const FIREBASE_CONFIG = {
   measurementId: "G-0YWTXYJ7RN"
 };
 
-/* Adexium WID */
+/* Adexium WID (your provided) */
 const ADEXIUM_WID = 'de78ddc3-cd12-4357-a6cf-8fe6c9155acc';
-/* Optional server endpoints (not required) */
-const VERIFY_AD_URL   = "https://comhashgame.vercel.app/verifyAd";
+
+/* VERIFY endpoints (optional) */
 const VERIFY_PLAY_URL = "https://comhashgame.vercel.app/verifyPlay";
-const ADMIN_API_KEY   = "COMHASH_ADMIN_2025";
+const ADMIN_API_KEY = "COMHASH_ADMIN_2025";
+
+/* Ad reward amount (real ad reward when provider confirms) */
+const AD_REWARD_AMOUNT = 20; // TOK granted when ad is rewarded by provider
 /* ========================================= */
 
-/* DOM helpers */
-const $ = id => document.getElementById(id);
-function createNode(t, attrs={}){ const e=document.createElement(t); Object.assign(e, attrs); return e; }
+function $id(id){ return document.getElementById(id); }
+function createNode(t, a={}){ const e=document.createElement(t); Object.assign(e, a); return e; }
 
-/* Initialize Firebase (compat) */
+/* Initialize Firebase */
 firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.database();
 const usersRef = db.ref('users');
 const lootRef = db.ref('lootHistory');
 
-/* Telegram WebApp (require) */
+/* Telegram WebApp (REQUIRED) */
 const tg = window.Telegram?.WebApp || null;
 try { tg?.expand?.(); } catch(e){}
 const tgUser = tg?.initDataUnsafe?.user;
-if (!tgUser || !tgUser.id) {
-  alert('Open this inside Telegram (bot → Web App). Telegram ID is required.');
+if (!tgUser || !tgUser.id){
+  alert('Open this page inside Telegram (bot → Web App). Telegram ID is required.');
   throw new Error('Telegram WebApp user required');
 }
 const playerId = String(tgUser.id);
 const playerName = tgUser.first_name || tgUser.username || ('tg_' + playerId);
-$('playerTag').textContent = `${playerName} • ${playerId}`;
+$id('playerTag').textContent = `${playerName} • ${playerId}`;
 
 /* referral detection */
 const startParam = tg?.initDataUnsafe?.start_param || null;
 let referrerId = (startParam && startParam.startsWith('ref_')) ? startParam.replace('ref_','') : null;
 
-/* State (fresh per Telegram user) */
-let balance = 0;
-let score = 0;
-let totalTaps = 0;
-let tapBuffer = 0;
+/* State (clean per Telegram user) */
+let balance = 0, score = 0, totalTaps = 0, tapBuffer = 0;
 let booster = { multiplier:1, expiresAt:0 };
 let recentLoot = [];
 
-/* UI render */
+/* UI helpers */
 function render(){
-  $('balance').textContent = balance;
-  $('score').textContent = score;
-  $('taps').textContent = totalTaps;
-  $('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
+  $id('balance').textContent = balance;
+  $id('score').textContent = score;
+  $id('taps').textContent = totalTaps;
+  $id('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
 }
-render();
-
-/* Push lines to hack area */
-function pushLine(text){
-  const el = createNode('div'); el.textContent = text;
-  $('hackArea').appendChild(el);
-  while($('hackArea').children.length > 8) $('hackArea').removeChild($('hackArea').firstChild);
-}
-
-/* Show modal */
-function showModal(title, html){
-  const m = createNode('div'); m.className = 'modal';
-  m.innerHTML = `<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`;
-  document.body.appendChild(m);
-  m.querySelector('.closeX').onclick = () => m.remove();
-  return m;
-}
+function pushLine(text){ const el=createNode('div'); el.textContent=text; $id('hackArea').appendChild(el); while($id('hackArea').children.length>8) $id('hackArea').removeChild($id('hackArea').firstChild); }
+function showModal(title, html){ const m=createNode('div'); m.className='modal'; m.innerHTML=`<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`; document.body.appendChild(m); m.querySelector('.closeX').onclick = ()=>m.remove(); return m; }
+function showGlitch(ms=800){ const g=createNode('div'); g.className='notice'; g.textContent='SYSTEM GLITCH'; document.body.appendChild(g); setTimeout(()=>g.remove(), ms); }
 
 /* Ensure user exists at users/<telegram_id> */
 async function ensureUser(){
@@ -162,13 +147,7 @@ async function ensureUser(){
     const snap = await usersRef.child(playerId).get();
     if (!snap.exists()){
       await usersRef.child(playerId).set({
-        playerId,
-        username: playerName,
-        balance: 0,
-        score: 0,
-        totalTaps: 0,
-        createdAt: Date.now(),
-        referrer: referrerId || null
+        playerId, username: playerName, balance:0, score:0, totalTaps:0, createdAt:Date.now(), referrer: referrerId || null
       });
       if (referrerId) await applyReferral(referrerId);
     } else {
@@ -179,15 +158,11 @@ async function ensureUser(){
       if (d.booster && d.booster.expiresAt && Date.now() < d.booster.expiresAt) booster = d.booster;
       // load recent loot (last 6)
       const lootSnap = await lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(6).get();
-      recentLoot = [];
-      lootSnap.forEach(s => recentLoot.push(s.val()));
+      recentLoot = []; lootSnap.forEach(s => recentLoot.push(s.val()));
     }
     render();
-  } catch(e){
-    console.error('ensureUser', e);
-  }
+  } catch(e){ console.error('ensureUser error', e); }
 }
-
 async function applyReferral(refId){
   try {
     const myRef = usersRef.child(playerId);
@@ -203,11 +178,11 @@ async function applyReferral(refId){
       await rRef.update({ balance: prev + 100 });
     }
     render();
-  } catch(e){ console.warn('applyReferral', e); }
+  } catch(e){ console.warn('applyReferral error', e); }
 }
 ensureUser();
 
-/* Persist to DB (periodic) */
+/* Persist periodically to DB */
 async function persist(force=false){
   if (tapBuffer >= 20 || force){
     tapBuffer = 0;
@@ -217,8 +192,9 @@ async function persist(force=false){
 }
 setInterval(()=>persist(true), 15000);
 
-/* Grant loot helper */
+/* Loot & booster helpers */
 async function grantLoot(amount, reason='event'){
+  // client-first immediate UX update (DB authoritative)
   balance += amount;
   recentLoot.push({ amount, reason, ts: Date.now() });
   if (recentLoot.length > 12) recentLoot.shift();
@@ -228,8 +204,6 @@ async function grantLoot(amount, reason='event'){
     await usersRef.child(playerId).update({ balance });
   } catch(e){ console.warn('grantLoot err', e); }
 }
-
-/* Booster helper */
 async function giveBooster(mult, durSec){
   booster = { multiplier: mult, expiresAt: Date.now() + durSec*1000 };
   try { await usersRef.child(playerId).update({ booster }); } catch(e){ console.warn('booster err', e); }
@@ -237,49 +211,66 @@ async function giveBooster(mult, durSec){
   setTimeout(()=>{ if (Date.now() >= booster.expiresAt){ booster = { multiplier:1, expiresAt:0 }; render(); } }, durSec*1000 + 200);
 }
 
-/* Leaderboard top 100 real-time */
-usersRef.orderByChild('balance').limitToLast(100).on('value', snap => {
-  const arr=[];
-  snap.forEach(s=>arr.push(s.val()));
-  arr.reverse();
-  const ol = $('lbList'); if (!ol) return;
-  ol.innerHTML='';
+/* Leaderboard top 100 realtime */
+usersRef.orderByChild('balance').limitToLast(100).on('value', snap=>{
+  const arr=[]; snap.forEach(s=>arr.push(s.val())); arr.reverse();
+  const ol = $id('lbList'); if (!ol) return;
+  ol.innerHTML = '';
   arr.forEach((u,i)=>{ const li = createNode('li'); li.textContent = `${i+1}. ${u.username || u.playerId} — ${Number(u.balance||0)} TOK`; ol.appendChild(li); });
 });
 
-/* Adexium init */
+/* Initialize Adexium widget (using your WID) */
 let adexiumWidget = null;
 try {
   adexiumWidget = new AdexiumWidget({ wid: ADEXIUM_WID, adFormat: 'interstitial' });
-  adexiumWidget.autoMode();
-} catch(e){ console.warn('Adexium init failed', e); }
+  // Depending on Adexium version, autoMode will preload/auto-show when ready.
+  // We'll call show() explicitly when needed.
+  // We still call autoMode to help preload.
+  if (typeof adexiumWidget.autoMode === 'function') adexiumWidget.autoMode();
+} catch(e){ console.warn('Adexium init error', e); }
 
-/* showAdFlow - Adexium only */
+/* showAdFlow - ADExium only — no simulated reward path */
 async function showAdFlow(){
+  if (!adexiumWidget || typeof adexiumWidget.show !== 'function'){
+    // Adexium not available or script failed to load.
+    // Do NOT simulate reward; inform user to try later.
+    alert('Ad service unavailable — try again later.');
+    return 'unavailable';
+  }
+
   try {
-    if (adexiumWidget && typeof adexiumWidget.show === 'function'){
-      try {
-        const res = await adexiumWidget.show(); // some SDKs return promise with result
-        if (res && res.rewarded) { await grantLoot(res.amount || 50, 'adexium_reward'); return 'rewarded'; }
-        // UI opened and server webhook handles reward
-        return 'requested';
-      } catch(e){ console.warn('adexium.show error', e); }
+    // Many Adexium SDKs either return a Promise or use events.
+    // We'll first try awaiting a promise result from show()
+    const res = await adexiumWidget.show();
+    // If provider returns structured result with rewarded flag:
+    if (res && (res.rewarded === true || res.rewarded === 'true')) {
+      // Provider signalled reward immediately
+      await grantLoot(AD_REWARD_AMOUNT, 'adexium_reward');
+      return 'rewarded';
     }
-  } catch(err){ console.warn('showAdFlow err', err); }
-  // fallback: simulate for testing
-  const ok = confirm('Ad unavailable — simulate watch (OK = rewarded)?');
-  if (ok){ await grantLoot(50, 'ad_sim'); return 'rewarded'; }
-  return 'skipped';
+    // If provider returns an object without 'rewarded',
+    // it may still call a webhook or event — treat as requested.
+    // Do not grant client-side reward unless SDK confirms.
+    // Optionally call server to verify later via webhook.
+    return 'requested';
+  } catch(err){
+    // If show() throws, ad failed to play or not ready
+    console.warn('adexium.show failed', err);
+    alert('Ad failed to play — try again later.');
+    return 'failed';
+  }
 }
 
 /* Tap logic */
 let sessionStart = 0, sessionTaps = 0;
-$('tapBtn').addEventListener('click', async ()=>{
+$id('tapBtn').addEventListener('click', async ()=>{
   if (!sessionStart) sessionStart = Date.now();
   sessionTaps++; totalTaps++; tapBuffer++;
   const mult = (booster.multiplier>1 && booster.expiresAt > Date.now()) ? booster.multiplier : 1;
   const gain = Math.round(1 * mult + Math.random());
   score += gain;
+
+  // reward TOK every 5 taps locally
   if (totalTaps % 5 === 0){
     const tok = Math.max(1, Math.floor(gain/1));
     balance += tok;
@@ -291,59 +282,69 @@ $('tapBtn').addEventListener('click', async ()=>{
   if (Math.random() < 0.03) showGlitch(700);
   if (Math.random() < 0.02){ const amt = Math.floor(Math.random()*50)+25; await grantLoot(amt,'random_drop'); }
 
+  // every 30 taps: trigger ad (Adexium) AND server verify call
   if (totalTaps % 30 === 0){
     const durationMs = Date.now() - (sessionStart || Date.now());
     const sessionId = 'sess_' + (sessionStart || Date.now()) + '_' + Math.random().toString(36).slice(2,8);
+    // call verifyPlay endpoint if you have server-side anti-cheat (optional)
     (async ()=>{
       try {
         await fetch(VERIFY_PLAY_URL, { method:'POST', headers:{'content-type':'application/json','x-admin-key':ADMIN_API_KEY}, body: JSON.stringify({ playerId, sessionId, taps: sessionTaps, durationMs, username: playerName }) });
-      } catch(e){ console.warn('verifyPlay failed', e); }
+      } catch(e){ console.warn('verifyPlay call failed', e); }
     })();
     sessionStart = 0; sessionTaps = 0;
-    await onThirty();
+
+    // Trigger ad flow (Adexium) — real ad, no simulation
+    const adRes = await showAdFlow();
+    if (adRes === 'rewarded'){
+      // provider confirmed reward via show() result
+      await giveBooster(2, 20);
+      const loot = Math.floor(Math.random()*150) + 50;
+      await grantLoot(loot, '30tap_ad_reward');
+      showModal('Reward', `Ad confirmed reward. Booster x2 (20s) +${loot} TOK.`);
+    } else if (adRes === 'requested'){
+      // Ad played; reward will be authoritative if provider webhook hits your server.
+      showModal('Ad started', 'Ad started. Reward will be granted when the ad provider confirms via webhook.');
+    } else {
+      // failed/unavailable — no simulated reward
+      showModal('Ad unavailable', 'Ad could not be played. No reward was given.');
+    }
   }
 
   if (tapBuffer >= 20) { await persist(); }
 });
 
-/* 30-tap stacked actions */
-async function onThirty(){
-  pushLine('*** 30 TAPS EVENT ***');
-  showGlitch(900);
-  const res = await showAdFlow();
-  if (res === 'requested' || res === 'rewarded'){
-    await giveBooster(2, 20);
-    const loot = Math.floor(Math.random()*150) + 50;
-    await grantLoot(loot, '30tap_bonus');
-    showModal('Reward', `Booster x2 (20s) +${loot} TOK (server verify pending).`);
-  } else {
-    const small = 20; await grantLoot(small, 'no_ad'); showModal('Notice', `No ad — you got ${small} TOK.`);
-  }
-}
+/* onThirty fallback when manually triggered (not used since ad is automatic above) */
+async function onThirty(){ /* reserved if needed */ }
 
-/* Mission button (simple test mission) */
-$('missionBtn').addEventListener('click', async ()=>{
-  const m = showModal('Mission', `<p>Claim test mission: +100 TOK (dev)</p><div style="margin-top:10px"><button id="claimTest" class="small">Claim +100</button></div>`);
+/* Buttons: Watch Ad, Mission, Invite */
+$id('watchAdBtn').addEventListener('click', async ()=>{
+  const r = await showAdFlow();
+  if (r === 'rewarded') {
+    // provider confirmed reward immediately
+    alert(`Ad rewarded: +${AD_REWARD_AMOUNT} TOK.`);
+  } else if (r === 'requested') {
+    alert('Ad started — reward pending provider confirmation.');
+  } else {
+    // 'failed' or 'unavailable'
+  }
+});
+
+$id('missionBtn').addEventListener('click', ()=>{
+  const m = showModal('Mission', `<p>Test mission: claim +100 TOK (dev)</p><div style="margin-top:10px"><button id="claimTest" class="small">Claim +100</button></div>`);
   m.querySelector('#claimTest').onclick = async ()=>{
     await grantLoot(100, 'mission_test');
     m.remove();
   };
 });
 
-/* Watch Ad button */
-$('watchAdBtn').addEventListener('click', async ()=>{
-  const r = await showAdFlow();
-  if (r === 'requested' || r === 'rewarded') alert('Ad started — reward may be granted via ad provider webhook.');
-  else alert('Ad skipped/unavailable.');
-});
+/* Invite: copy referral link */
+$id('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
 
-/* Invite button: copy referral */
-$('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
-
-/* cleanup on unload */
+/* cleanup */
 window.addEventListener('beforeunload', ()=>persist(true));
 render();
-pushLine('Welcome — logged in with Telegram ID.');
+pushLine('Welcome — logged in with Telegram ID. Adexium enabled (no simulation).');
 </script>
 </body>
 </html>
