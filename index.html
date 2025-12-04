@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Hacker Tapper — ComHash (Telegram)</title>
+<title>Hacker Tapper — ComHash (Simple Green)</title>
 
 <!-- Telegram WebApp -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -12,81 +12,72 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
 
-<!-- MoneyTag (optional) -->
-<script src="//libtl.com/sdk.js" data-zone="10199103" data-sdk="show_10199103" async></script>
-
 <!-- Adexium (interstitial) -->
 <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
 
 <style>
-  :root{--bg:#020610;--card:#071425;--accent:#00e5a8;--muted:#93b6c6}
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#001018,#020610);color:#d8f6f0}
-  .wrap{max-width:920px;margin:12px auto;padding:14px}
-  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-  .grid{display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px}
-  @media(max-width:780px){.grid{grid-template-columns:1fr}}
-  .hud{display:flex;gap:10px;justify-content:space-between;margin-bottom:10px}
-  .stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;min-width:0;text-align:center}
-  #tapBtn{width:100%;padding:16px;border-radius:12px;background:linear-gradient(180deg,#023c32,#01513f);border:0;color:#fff;font-weight:800;font-size:18px}
-  .small{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
-  #hackAnim{height:140px;background:#00121a;border-radius:8px;padding:10px;color:#7ef2d7;overflow:auto;font-family:monospace}
-  .lb{max-height:420px;overflow:auto}
+  /* Simple old UI, green theme */
+  :root{--bg:#f3fff6;--card:#ffffff;--accent:#0b8457;--muted:#4a6b59}
+  html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#0b2f1f}
+  .wrap{width:420px;margin:18px auto;background:var(--card);border-radius:12px;padding:16px;box-shadow:0 8px 30px rgba(7,24,18,0.08)}
+  h1{margin:0;font-size:20px}
   .muted{color:var(--muted);font-size:13px}
-  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#071021;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);z-index:10000;max-width:92%;width:420px}
+  .hud{display:flex;gap:8px;margin:12px 0}
+  .stat{flex:1;background:#f6fff9;border-radius:8px;padding:10px;text-align:center;border:1px solid rgba(11,132,87,0.06)}
+  .big{font-weight:800;font-size:18px;color:var(--accent)}
+  #hackArea{height:120px;background:#eaf8ef;border-radius:8px;padding:8px;font-family:monospace;overflow:auto;border:1px solid rgba(11,132,87,0.04)}
+  .controls{display:flex;gap:8px;margin-top:12px}
+  button{padding:10px 12px;border-radius:8px;border:0;cursor:pointer}
+  #tapBtn{background:var(--accent);color:#fff;font-weight:800;flex:1}
+  .small{background:transparent;border:1px solid rgba(11,132,87,0.12);color:var(--accent);border-radius:8px;padding:8px}
+  .footer{margin-top:12px;font-size:13px;color:var(--muted);text-align:center}
+  .lb{max-height:280px;overflow:auto;margin-top:8px;padding:8px;background:#fbfffb;border-radius:8px;border:1px solid rgba(11,132,87,0.04)}
+  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--card);padding:14px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);z-index:10000;max-width:92%;width:360px}
   .closeX{position:absolute;right:8px;top:6px;cursor:pointer;color:var(--muted)}
-  #glitch{position:fixed;inset:0;display:none;z-index:9999;pointer-events:none}
-  .glitchLayer{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,0,120,0.06), rgba(0,255,200,0.06));mix-blend-mode:screen;filter:contrast(1.2) saturate(1.2);animation:glitchAnim .8s ease-in-out}
-  @keyframes glitchAnim{0%{transform:translateX(0)}50%{transform:translateX(6px) skewX(-2deg)}100%{transform:translateX(0)}}
+  .notice{background:#fff8ea;border:1px solid #ffe6b3;padding:8px;border-radius:8px;margin-top:12px;color:#6b4a00}
 </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
-        <h2 style="margin:.2rem 0">💻 Hacker Tapper — ComHash</h2>
+        <h1>💻 Hacker Tapper</h1>
         <div class="muted">Inside Telegram — tap, watch, invite, win.</div>
       </div>
       <div id="playerTag" class="muted">Loading...</div>
     </div>
 
-    <div class="card grid">
-      <main id="left">
-        <div class="hud">
-          <div class="stat">Balance:<div id="balance" style="font-weight:800;font-size:18px">0</div></div>
-          <div class="stat">Score:<div id="score" style="font-weight:800;font-size:18px">0</div></div>
-          <div class="stat">Taps:<div id="taps" style="font-weight:800;font-size:18px">0</div></div>
-        </div>
-
-        <div id="hackAnim" class="card">Welcome — press TAP to start hacking.</div>
-
-        <button id="tapBtn">TAP TO INJECT</button>
-
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="small" id="watchAdBtn">Watch Ad (reward)</button>
-          <button class="small" id="missionsBtn">Missions</button>
-          <button class="small" id="inviteBtn">Invite</button>
-        </div>
-
-        <div style="margin-top:12px" class="muted">Referral: <span id="refLink">-</span></div>
-      </main>
-
-      <aside id="right">
-        <div class="card">
-          <h3 style="margin:0">Leaderboard (Top 100)</h3>
-          <div class="lb" id="leaderboard"><ol id="lbList"></ol></div>
-          <div style="margin-top:12px"><strong>Booster:</strong> <span id="boosterInfo">None</span></div>
-          <div style="margin-top:12px"><strong>Recent Loot:</strong><div id="lootList" class="muted" style="max-height:120px;overflow:auto"></div></div>
-        </div>
-      </aside>
+    <div class="hud" style="margin-top:12px">
+      <div class="stat">Balance<div id="balance" class="big">0</div></div>
+      <div class="stat">Score<div id="score" class="big">0</div></div>
+      <div class="stat">Taps<div id="taps" class="big">0</div></div>
     </div>
 
-    <div id="glitch"><div class="glitchLayer"></div></div>
-    <div id="modalRoot"></div>
-    <div class="muted" style="margin-top:10px">Host over HTTPS. Configs inserted from your keys.</div>
+    <div id="hackArea">Welcome — press TAP to start hacking.</div>
+
+    <div class="controls" style="margin-top:12px">
+      <button id="tapBtn">TAP TO INJECT</button>
+      <button id="watchAdBtn" class="small">Watch Ad</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+      <button id="missionBtn" class="small">Claim Test Mission</button>
+      <div style="margin-left:auto" class="muted">Referral: <span id="refLink">-</span></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <h3 style="margin:.2rem 0">Leaderboard (Top 100)</h3>
+      <div id="leaderboard" class="lb"><ol id="lbList" style="margin:0;padding-left:16px"></ol></div>
+    </div>
+
+    <div class="footer">Host over HTTPS. Open via your Telegram bot (Web App).</div>
   </div>
 
+  <div id="modalRoot"></div>
+
 <script>
-/* ================= CONFIG (your provided keys) ================= */
+/* ========== CONFIG (your keys) ========== */
+/* Firebase config - using keys you provided earlier */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBDovmAk88JUEjeY35T-3eIta1igiE5fQ0",
   authDomain: "comhashgame.firebaseapp.com",
@@ -98,42 +89,41 @@ const FIREBASE_CONFIG = {
   measurementId: "G-0YWTXYJ7RN"
 };
 
+/* Adexium WID */
+const ADEXIUM_WID = 'de78ddc3-cd12-4357-a6cf-8fe6c9155acc';
+/* Optional server endpoints (not required) */
 const VERIFY_AD_URL   = "https://comhashgame.vercel.app/verifyAd";
 const VERIFY_PLAY_URL = "https://comhashgame.vercel.app/verifyPlay";
 const ADMIN_API_KEY   = "COMHASH_ADMIN_2025";
+/* ========================================= */
 
-const MONEYTAG_FUNC = "show_10199103";
-const MONEYTAG_ZONE = "10199103";
-const ADEXIUM_WID = 'de78ddc3-cd12-4357-a6cf-8fe6c9155acc';
-const BOT_USERNAME = 'comhash_bot';
-/* ============================================================= */
+/* DOM helpers */
+const $ = id => document.getElementById(id);
+function createNode(t, attrs={}){ const e=document.createElement(t); Object.assign(e, attrs); return e; }
 
-function $id(id){ return document.getElementById(id); }
-function createNode(t, a={}){ const e=document.createElement(t); Object.assign(e, a); return e; }
-
-/* Initialize Firebase */
+/* Initialize Firebase (compat) */
 firebase.initializeApp(FIREBASE_CONFIG);
-const rdb = firebase.database();
-const usersRef = rdb.ref('users');
-const lootRef = rdb.ref('lootHistory');
+const db = firebase.database();
+const usersRef = db.ref('users');
+const lootRef = db.ref('lootHistory');
 
-/* Telegram WebApp (strict) */
+/* Telegram WebApp (require) */
 const tg = window.Telegram?.WebApp || null;
 try { tg?.expand?.(); } catch(e){}
 const tgUser = tg?.initDataUnsafe?.user;
 if (!tgUser || !tgUser.id) {
-  alert('Open inside Telegram WebApp (bot → Web App). Telegram ID is required.');
-  throw new Error('Telegram user required');
+  alert('Open this inside Telegram (bot → Web App). Telegram ID is required.');
+  throw new Error('Telegram WebApp user required');
 }
 const playerId = String(tgUser.id);
 const playerName = tgUser.first_name || tgUser.username || ('tg_' + playerId);
-$id('playerTag').textContent = `${playerName} • ${playerId}`;
+$('playerTag').textContent = `${playerName} • ${playerId}`;
 
 /* referral detection */
 const startParam = tg?.initDataUnsafe?.start_param || null;
 let referrerId = (startParam && startParam.startsWith('ref_')) ? startParam.replace('ref_','') : null;
 
-/* State */
+/* State (fresh per Telegram user) */
 let balance = 0;
 let score = 0;
 let totalTaps = 0;
@@ -141,22 +131,34 @@ let tapBuffer = 0;
 let booster = { multiplier:1, expiresAt:0 };
 let recentLoot = [];
 
-/* UI helpers */
+/* UI render */
 function render(){
-  $id('balance').textContent = balance;
-  $id('score').textContent = score;
-  $id('taps').textContent = totalTaps;
-  $id('boosterInfo').textContent = (booster.multiplier>1 && Date.now() < booster.expiresAt) ? `x${booster.multiplier} (exp ${new Date(booster.expiresAt).toLocaleTimeString()})` : 'None';
-  $id('refLink').textContent = `https://t.me/${BOT_USERNAME}?start=ref_${playerId}`;
-  $id('lootList').innerHTML = recentLoot.slice().reverse().map(l=>`<div>${new Date(l.ts).toLocaleTimeString()}: +${l.amount} TOK (${l.reason})</div>`).join('');
+  $('balance').textContent = balance;
+  $('score').textContent = score;
+  $('taps').textContent = totalTaps;
+  $('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
 }
-function pushLine(text){ const el=createNode('div'); el.textContent=text; $id('hackAnim').appendChild(el); while($id('hackAnim').children.length>8) $id('hackAnim').removeChild($id('hackAnim').firstChild); }
-function showModal(title, html){ const m=createNode('div'); m.className='modal'; m.innerHTML=`<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`; $id('modalRoot').appendChild(m); m.querySelector('.closeX').onclick = ()=>m.remove(); return m; }
-function showGlitch(ms=800){ const g=$id('glitch'); g.style.display='block'; setTimeout(()=>g.style.display='none', ms); }
+render();
 
-/* Ensure user exists (Telegram ID only) */
-async function ensureUserRTDB(){
-  try{
+/* Push lines to hack area */
+function pushLine(text){
+  const el = createNode('div'); el.textContent = text;
+  $('hackArea').appendChild(el);
+  while($('hackArea').children.length > 8) $('hackArea').removeChild($('hackArea').firstChild);
+}
+
+/* Show modal */
+function showModal(title, html){
+  const m = createNode('div'); m.className = 'modal';
+  m.innerHTML = `<div class="closeX">✕</div><h3>${title}</h3><div style="margin-top:8px">${html}</div>`;
+  document.body.appendChild(m);
+  m.querySelector('.closeX').onclick = () => m.remove();
+  return m;
+}
+
+/* Ensure user exists at users/<telegram_id> */
+async function ensureUser(){
+  try {
     const snap = await usersRef.child(playerId).get();
     if (!snap.exists()){
       await usersRef.child(playerId).set({
@@ -168,21 +170,25 @@ async function ensureUserRTDB(){
         createdAt: Date.now(),
         referrer: referrerId || null
       });
-      if (referrerId) await applyReferralRTDB(referrerId);
+      if (referrerId) await applyReferral(referrerId);
     } else {
       const d = snap.val();
       balance = Number(d.balance || 0);
       score = Number(d.score || 0);
       totalTaps = Number(d.totalTaps || 0);
       if (d.booster && d.booster.expiresAt && Date.now() < d.booster.expiresAt) booster = d.booster;
+      // load recent loot (last 6)
       const lootSnap = await lootRef.orderByChild('playerId').equalTo(playerId).limitToLast(6).get();
-      recentLoot = []; lootSnap.forEach(s=>recentLoot.push(s.val()));
+      recentLoot = [];
+      lootSnap.forEach(s => recentLoot.push(s.val()));
     }
     render();
-  } catch(e){ console.error('ensureUserRTDB error', e); }
+  } catch(e){
+    console.error('ensureUser', e);
+  }
 }
 
-async function applyReferralRTDB(refId){
+async function applyReferral(refId){
   try {
     const myRef = usersRef.child(playerId);
     const mySnap = await myRef.get();
@@ -190,19 +196,18 @@ async function applyReferralRTDB(refId){
     if (mySnap.val().referral_claimed) return;
     await myRef.update({ referral_claimed:true });
     balance += 50; await myRef.update({ balance });
-    const refRef = usersRef.child(refId);
-    const refSnap = await refRef.get();
-    if (refSnap.exists()){
-      const prev = Number(refSnap.val().balance || 0);
-      await refRef.update({ balance: prev + 100 });
+    const rRef = usersRef.child(refId);
+    const rSnap = await rRef.get();
+    if (rSnap.exists()){
+      const prev = Number(rSnap.val().balance || 0);
+      await rRef.update({ balance: prev + 100 });
     }
     render();
-  } catch(e){ console.warn('applyReferral error', e); }
+  } catch(e){ console.warn('applyReferral', e); }
 }
+ensureUser();
 
-ensureUserRTDB();
-
-/* Persist periodically */
+/* Persist to DB (periodic) */
 async function persist(force=false){
   if (tapBuffer >= 20 || force){
     tapBuffer = 0;
@@ -212,7 +217,7 @@ async function persist(force=false){
 }
 setInterval(()=>persist(true), 15000);
 
-/* Loot & booster */
+/* Grant loot helper */
 async function grantLoot(amount, reason='event'){
   balance += amount;
   recentLoot.push({ amount, reason, ts: Date.now() });
@@ -221,65 +226,55 @@ async function grantLoot(amount, reason='event'){
   try {
     await lootRef.push({ playerId, amount, reason, ts: Date.now() });
     await usersRef.child(playerId).update({ balance });
-  } catch(e){ console.warn('grantLoot error', e); }
+  } catch(e){ console.warn('grantLoot err', e); }
 }
 
+/* Booster helper */
 async function giveBooster(mult, durSec){
   booster = { multiplier: mult, expiresAt: Date.now() + durSec*1000 };
-  try { await usersRef.child(playerId).update({ booster }); } catch(e){ console.warn('booster write', e); }
+  try { await usersRef.child(playerId).update({ booster }); } catch(e){ console.warn('booster err', e); }
   render();
   setTimeout(()=>{ if (Date.now() >= booster.expiresAt){ booster = { multiplier:1, expiresAt:0 }; render(); } }, durSec*1000 + 200);
 }
 
-/* Leaderboard */
-const lbListEl = $id('lbList');
+/* Leaderboard top 100 real-time */
 usersRef.orderByChild('balance').limitToLast(100).on('value', snap => {
-  const arr = [];
-  snap.forEach(s => arr.push(s.val()));
+  const arr=[];
+  snap.forEach(s=>arr.push(s.val()));
   arr.reverse();
-  lbListEl.innerHTML = '';
-  arr.forEach((u,i) => {
-    const li = createNode('li');
-    li.textContent = `${i+1}. ${u.username || u.playerId} — ${Number(u.balance || 0)} TOK`;
-    lbListEl.appendChild(li);
-  });
+  const ol = $('lbList'); if (!ol) return;
+  ol.innerHTML='';
+  arr.forEach((u,i)=>{ const li = createNode('li'); li.textContent = `${i+1}. ${u.username || u.playerId} — ${Number(u.balance||0)} TOK`; ol.appendChild(li); });
 });
 
-/* Ad integrations */
+/* Adexium init */
 let adexiumWidget = null;
 try {
   adexiumWidget = new AdexiumWidget({ wid: ADEXIUM_WID, adFormat: 'interstitial' });
   adexiumWidget.autoMode();
-} catch(e){ console.warn('Adexium init error', e); }
+} catch(e){ console.warn('Adexium init failed', e); }
 
-function ensureMoneyTag(){ return typeof window[MONEYTAG_FUNC] === 'function' || !!document.querySelector(`script[data-sdk="${MONEYTAG_FUNC}"]`); }
-
+/* showAdFlow - Adexium only */
 async function showAdFlow(){
   try {
-    if (adexiumWidget && typeof adexiumWidget.show === 'function') {
+    if (adexiumWidget && typeof adexiumWidget.show === 'function'){
       try {
-        const res = await adexiumWidget.show();
+        const res = await adexiumWidget.show(); // some SDKs return promise with result
         if (res && res.rewarded) { await grantLoot(res.amount || 50, 'adexium_reward'); return 'rewarded'; }
+        // UI opened and server webhook handles reward
         return 'requested';
       } catch(e){ console.warn('adexium.show error', e); }
     }
-    if (ensureMoneyTag()){
-      try {
-        window[MONEYTAG_FUNC]();
-        try { await fetch(VERIFY_AD_URL, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ playerId, source:'moneytag' }) }); } catch(e){}
-        await grantLoot(10, 'ad_opt_reward');
-        return 'requested';
-      } catch(e){ console.warn('MoneyTag call failed', e); }
-    }
-  } catch(e){ console.warn('showAdFlow err', e); }
-  const ok = confirm('Ad not available — simulate watch (OK = rewarded)?');
+  } catch(err){ console.warn('showAdFlow err', err); }
+  // fallback: simulate for testing
+  const ok = confirm('Ad unavailable — simulate watch (OK = rewarded)?');
   if (ok){ await grantLoot(50, 'ad_sim'); return 'rewarded'; }
   return 'skipped';
 }
 
 /* Tap logic */
 let sessionStart = 0, sessionTaps = 0;
-$id('tapBtn').addEventListener('click', async () => {
+$('tapBtn').addEventListener('click', async ()=>{
   if (!sessionStart) sessionStart = Date.now();
   sessionTaps++; totalTaps++; tapBuffer++;
   const mult = (booster.multiplier>1 && booster.expiresAt > Date.now()) ? booster.multiplier : 1;
@@ -302,7 +297,7 @@ $id('tapBtn').addEventListener('click', async () => {
     (async ()=>{
       try {
         await fetch(VERIFY_PLAY_URL, { method:'POST', headers:{'content-type':'application/json','x-admin-key':ADMIN_API_KEY}, body: JSON.stringify({ playerId, sessionId, taps: sessionTaps, durationMs, username: playerName }) });
-      } catch(e){ console.warn('verifyPlay call failed', e); }
+      } catch(e){ console.warn('verifyPlay failed', e); }
     })();
     sessionStart = 0; sessionTaps = 0;
     await onThirty();
@@ -311,9 +306,9 @@ $id('tapBtn').addEventListener('click', async () => {
   if (tapBuffer >= 20) { await persist(); }
 });
 
-/* onThirty actions */
+/* 30-tap stacked actions */
 async function onThirty(){
-  pushLine('!!! SYSTEM EVENT: 30 TAPS !!!');
+  pushLine('*** 30 TAPS EVENT ***');
   showGlitch(900);
   const res = await showAdFlow();
   if (res === 'requested' || res === 'rewarded'){
@@ -322,28 +317,30 @@ async function onThirty(){
     await grantLoot(loot, '30tap_bonus');
     showModal('Reward', `Booster x2 (20s) +${loot} TOK (server verify pending).`);
   } else {
-    const small = 20; await grantLoot(small, 'no_ad'); showModal('Notice', `Ad not available — you got ${small} TOK.`);
+    const small = 20; await grantLoot(small, 'no_ad'); showModal('Notice', `No ad — you got ${small} TOK.`);
   }
 }
 
-/* Buttons */
-$id('watchAdBtn').addEventListener('click', async ()=>{
+/* Mission button (simple test mission) */
+$('missionBtn').addEventListener('click', async ()=>{
+  const m = showModal('Mission', `<p>Claim test mission: +100 TOK (dev)</p><div style="margin-top:10px"><button id="claimTest" class="small">Claim +100</button></div>`);
+  m.querySelector('#claimTest').onclick = async ()=>{
+    await grantLoot(100, 'mission_test');
+    m.remove();
+  };
+});
+
+/* Watch Ad button */
+$('watchAdBtn').addEventListener('click', async ()=>{
   const r = await showAdFlow();
-  if (r === 'requested' || r === 'rewarded') alert('Ad flow started / reward may be granted via server webhook.');
-  else alert('Ad skipped or unavailable.');
+  if (r === 'requested' || r === 'rewarded') alert('Ad started — reward may be granted via ad provider webhook.');
+  else alert('Ad skipped/unavailable.');
 });
 
-$id('missionsBtn').addEventListener('click', ()=>{
-  const m = showModal('Missions', `<ol><li>Tap 100 times — auto reward</li><li>Invite friend — reward on join</li><li>Watch ads — counted server-side</li></ol><div style="margin-top:10px"><button id="claimTest" class="small">Claim test +100 TOK (dev)</button></div>`);
-  m.querySelector('#claimTest').onclick = async ()=>{ await grantLoot(100, 'mission_test'); m.remove(); };
-});
+/* Invite button: copy referral */
+$('refLink').textContent = `https://t.me/comhash_bot?start=ref_${playerId}`;
 
-$id('inviteBtn').addEventListener('click', ()=>{
-  const link = `https://t.me/${BOT_USERNAME}?start=ref_${playerId}`;
-  navigator.clipboard?.writeText(link).then(()=> showModal('Invite', `<p>Referral link copied:<br><strong>${link}</strong></p>`), ()=> showModal('Invite', `<p>Copy this link:<br><strong>${link}</strong></p>`));
-});
-
-/* cleanup */
+/* cleanup on unload */
 window.addEventListener('beforeunload', ()=>persist(true));
 render();
 pushLine('Welcome — logged in with Telegram ID.');
